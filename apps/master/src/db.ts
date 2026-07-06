@@ -126,6 +126,25 @@ export async function ensureSchema(db: Pool): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
+    CREATE TABLE IF NOT EXISTS artifacts (
+      artifact_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      task_id UUID REFERENCES category_tasks(task_id) ON DELETE SET NULL,
+      run_id UUID REFERENCES store_runs(run_id) ON DELETE SET NULL,
+      store_id TEXT REFERENCES stores(store_id) ON DELETE SET NULL,
+      worker_id TEXT REFERENCES workers(worker_id) ON DELETE SET NULL,
+      account_id TEXT REFERENCES accounts(account_id) ON DELETE SET NULL,
+      profile_id TEXT REFERENCES profiles(profile_id) ON DELETE SET NULL,
+      kind TEXT NOT NULL,
+      bucket TEXT NOT NULL,
+      object_key TEXT NOT NULL,
+      content_type TEXT,
+      size_bytes BIGINT,
+      checksum_sha256 TEXT,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (bucket, object_key)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_worker_heartbeats_worker_received ON worker_heartbeats(worker_id, received_at DESC);
     CREATE INDEX IF NOT EXISTS idx_accounts_worker ON accounts(worker_id);
     CREATE INDEX IF NOT EXISTS idx_profiles_worker ON profiles(worker_id);
@@ -133,5 +152,7 @@ export async function ensureSchema(db: Pool): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_store_runs_store ON store_runs(store_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_category_tasks_run_status ON category_tasks(run_id, status, priority ASC);
     CREATE INDEX IF NOT EXISTS idx_category_tasks_assignee ON category_tasks(assigned_worker_id, assigned_account_id, status);
+    CREATE INDEX IF NOT EXISTS idx_artifacts_task ON artifacts(task_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_artifacts_run ON artifacts(run_id, created_at DESC);
   `);
 }

@@ -34,3 +34,6 @@ export const taskStatuses = [
   "skipped"
 ] as const;
 export type TaskStatus = (typeof taskStatuses)[number];
+
+export const artifactKinds = ["raw_jsonl", "screenshot", "log", "export", "other"] as const;
+export type ArtifactKind = (typeof artifactKinds)[number];

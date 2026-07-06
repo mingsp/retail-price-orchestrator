@@ -5,6 +5,8 @@ import type {
   CreateStoreInput,
   StoreRecord,
   StoreRunRecord,
+  TaskClaimInput,
+  TaskClaimResult,
   UpdateCategoryTaskInput
 } from "@retail-orchestrator/shared";
 import type { Pool } from "pg";
@@ -177,6 +179,76 @@ export async function updateTask(
     ]
   );
   return getTask(db, taskId);
+}
+
+export async function claimNextTask(db: Pool, input: TaskClaimInput): Promise<TaskClaimResult> {
+  const account = await db.query(
+    `
+    SELECT a.status AS account_status, a.risk_level, p.status AS profile_status
+    FROM accounts a
+    JOIN profiles p ON p.profile_id = a.profile_id
+    WHERE a.account_id = $1
+      AND a.worker_id = $2
+      AND a.profile_id = $3
+    `,
+    [input.accountId, input.workerId, input.profileId]
+  );
+
+  if (!account.rows[0] || !["safe", "running"].includes(account.rows[0].account_status)) {
+    return { reason: "account_not_eligible" };
+  }
+  if (account.rows[0].risk_level === "blocked" || account.rows[0].risk_level === "high") {
+    return { reason: "account_not_eligible" };
+  }
+  if (account.rows[0].profile_status !== "safe") {
+    return { reason: "profile_not_eligible" };
+  }
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const selected = await client.query(
+      `
+      SELECT task_id
+      FROM category_tasks
+      WHERE status = 'pending'
+        AND (assigned_worker_id IS NULL OR assigned_worker_id = $1)
+        AND (assigned_account_id IS NULL OR assigned_account_id = $2)
+        AND (assigned_profile_id IS NULL OR assigned_profile_id = $3)
+      ORDER BY priority ASC, category_order ASC, created_at ASC
+      FOR UPDATE SKIP LOCKED
+      LIMIT 1
+      `,
+      [input.workerId, input.accountId, input.profileId]
+    );
+
+    if (!selected.rows[0]) {
+      await client.query("COMMIT");
+      return { reason: "no_task" };
+    }
+
+    const updated = await client.query(
+      `
+      UPDATE category_tasks SET
+        status = 'assigned',
+        assigned_worker_id = $2,
+        assigned_account_id = $3,
+        assigned_profile_id = $4,
+        updated_at = now()
+      WHERE task_id = $1
+      RETURNING task_id
+      `,
+      [selected.rows[0].task_id, input.workerId, input.accountId, input.profileId]
+    );
+    await client.query("COMMIT");
+    const task = await getTask(db, updated.rows[0].task_id);
+    return task ? { task } : { reason: "no_task" };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 function mapStore(row: any): StoreRecord {

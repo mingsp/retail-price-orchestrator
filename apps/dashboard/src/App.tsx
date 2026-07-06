@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type {
   AccountRegistryRow,
+  ArtifactRecord,
   CategoryTaskRecord,
   ProfileRegistryRow,
   RiskEventRecord,
@@ -10,6 +11,7 @@ import type {
 } from "@retail-orchestrator/shared";
 import {
   connectDashboard,
+  fetchArtifacts,
   fetchAccounts,
   fetchProfiles,
   fetchRiskEvents,
@@ -19,10 +21,11 @@ import {
   fetchWorkers
 } from "./api.js";
 import { AccountTable, ProfileTable, RiskEventTable } from "./registry-tables.js";
+import { ArtifactTable } from "./artifact-table.js";
 import { RunTable, StoreTable, TaskTable } from "./task-tables.js";
 import { WorkerStatusTable } from "./worker-status.js";
 
-type View = "workers" | "accounts" | "profiles" | "risks" | "stores" | "runs" | "tasks";
+type View = "workers" | "accounts" | "profiles" | "risks" | "stores" | "runs" | "tasks" | "artifacts";
 
 export function App() {
   const [workers, setWorkers] = useState<WorkerStatusRow[]>([]);
@@ -32,6 +35,7 @@ export function App() {
   const [stores, setStores] = useState<StoreRecord[]>([]);
   const [runs, setRuns] = useState<StoreRunRecord[]>([]);
   const [tasks, setTasks] = useState<CategoryTaskRecord[]>([]);
+  const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
   const [connection, setConnection] = useState("connecting");
   const [view, setView] = useState<View>("workers");
 
@@ -63,14 +67,15 @@ export function App() {
   }, []);
 
   async function refreshSnapshots() {
-    const [workerRows, accountRows, profileRows, riskRows, storeRows, runRows, taskRows] = await Promise.all([
+    const [workerRows, accountRows, profileRows, riskRows, storeRows, runRows, taskRows, artifactRows] = await Promise.all([
       fetchWorkers(),
       fetchAccounts(),
       fetchProfiles(),
       fetchRiskEvents(),
       fetchStores(),
       fetchRuns(),
-      fetchTasks()
+      fetchTasks(),
+      fetchArtifacts()
     ]);
     setWorkers(workerRows);
     setAccounts(accountRows);
@@ -79,6 +84,7 @@ export function App() {
     setStores(storeRows);
     setRuns(runRows);
     setTasks(taskRows);
+    setArtifacts(artifactRows);
   }
 
   async function refreshRegistries() {
@@ -121,6 +127,7 @@ export function App() {
             <Tab active={view === "stores"} label="Stores" onClick={() => setView("stores")} />
             <Tab active={view === "runs"} label="Runs" onClick={() => setView("runs")} />
             <Tab active={view === "tasks"} label="Tasks" onClick={() => setView("tasks")} />
+            <Tab active={view === "artifacts"} label="Artifacts" onClick={() => setView("artifacts")} />
           </nav>
         </div>
         {view === "workers" ? <WorkerStatusTable workers={workers} /> : null}
@@ -130,6 +137,7 @@ export function App() {
         {view === "stores" ? <StoreTable stores={stores} /> : null}
         {view === "runs" ? <RunTable runs={runs} /> : null}
         {view === "tasks" ? <TaskTable tasks={tasks} /> : null}
+        {view === "artifacts" ? <ArtifactTable artifacts={artifacts} /> : null}
       </section>
     </main>
   );
@@ -150,6 +158,7 @@ function viewTitle(view: View) {
   if (view === "stores") return "门店";
   if (view === "runs") return "采集批次";
   if (view === "tasks") return "类目任务";
+  if (view === "artifacts") return "原始产物";
   return "Worker 状态";
 }
 

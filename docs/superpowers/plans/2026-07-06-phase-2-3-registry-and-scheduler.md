@@ -53,8 +53,16 @@
 
 ## Next Implementation Slice
 
-- [ ] Add worker task polling or WebSocket command protocol.
-- [ ] Add task claim endpoint with account/profile eligibility checks.
+- [x] Add worker task polling or WebSocket command protocol.
+- [x] Add task claim endpoint with account/profile eligibility checks.
+- [x] Add artifact upload metadata and MinIO object registration.
 - [ ] Add dashboard actions for task/account/profile state transitions.
-- [ ] Add artifact upload metadata and MinIO object registration.
 - [ ] Add notification adapter for manual verification events.
+
+Verification:
+
+- `/api/tasks/claim` first call claimed `Test Category B`.
+- Second claim call returned `no_task`, confirming pending tasks are not double assigned.
+- Worker task polling is controlled by `WORKER_ENABLE_TASK_POLLING`; default is `false`.
+- `/api/artifacts/presign` returned a MinIO presigned PUT URL.
+- `/api/artifacts` registered a `raw_jsonl` artifact metadata row.

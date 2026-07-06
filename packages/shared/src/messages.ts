@@ -1,5 +1,6 @@
 import type {
   AccountStatus,
+  ArtifactKind,
   ProfileStatus,
   RiskLevel,
   RunStatus,
@@ -234,6 +235,62 @@ export interface UpdateCategoryTaskInput {
   collectedItems?: number;
   cursor?: Record<string, unknown>;
   lastError?: string | null;
+}
+
+export interface TaskClaimInput {
+  workerId: string;
+  accountId: string;
+  profileId: string;
+}
+
+export interface TaskClaimResult {
+  task?: CategoryTaskRecord;
+  reason?: "no_task" | "account_not_eligible" | "profile_not_eligible";
+}
+
+export interface ArtifactRecord {
+  artifactId: string;
+  taskId?: string;
+  runId?: string;
+  storeId?: string;
+  workerId?: string;
+  accountId?: string;
+  profileId?: string;
+  kind: ArtifactKind;
+  bucket: string;
+  objectKey: string;
+  contentType?: string;
+  sizeBytes?: number;
+  checksumSha256?: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface RegisterArtifactInput {
+  taskId?: string;
+  runId?: string;
+  storeId?: string;
+  workerId?: string;
+  accountId?: string;
+  profileId?: string;
+  kind: ArtifactKind;
+  bucket: string;
+  objectKey: string;
+  contentType?: string;
+  sizeBytes?: number;
+  checksumSha256?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PresignArtifactInput {
+  bucket: string;
+  objectKey: string;
+  expiresSeconds?: number;
+}
+
+export interface PresignArtifactResult {
+  url: string;
+  expiresSeconds: number;
 }
 
 export type DashboardMessage =

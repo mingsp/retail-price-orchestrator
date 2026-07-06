@@ -81,10 +81,10 @@ PostgreSQL durable tables:
 - `stores`
 - `store_runs`
 - `category_tasks`
+- `artifacts`
 
 Future tables:
 
-- `artifacts`
 - `exports`
 
 ## 5. Redis
@@ -151,10 +151,23 @@ GET /api/runs
 POST /api/runs
 GET /api/runs/:runId
 GET /api/tasks
+POST /api/tasks/claim
 POST /api/runs/:runId/tasks
 GET /api/tasks/:taskId
 PATCH /api/tasks/:taskId
 ```
+
+Task claiming uses account/profile eligibility checks and row locking (`FOR UPDATE SKIP LOCKED`) so multiple workers cannot claim the same pending category task.
+
+Artifact pipeline:
+
+```text
+GET /api/artifacts
+POST /api/artifacts
+POST /api/artifacts/presign
+```
+
+Workers upload large raw files directly to MinIO/S3 by presigned URL, then register metadata in PostgreSQL. Master does not proxy large artifact bodies.
 
 ## 8. Worker Account Snapshot
 

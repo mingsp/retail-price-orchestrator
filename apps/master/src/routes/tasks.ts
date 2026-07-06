@@ -1,4 +1,10 @@
-import type { CreateCategoryTaskInput, CreateRunInput, CreateStoreInput, UpdateCategoryTaskInput } from "@retail-orchestrator/shared";
+import type {
+  CreateCategoryTaskInput,
+  CreateRunInput,
+  CreateStoreInput,
+  TaskClaimInput,
+  UpdateCategoryTaskInput
+} from "@retail-orchestrator/shared";
 import type { FastifyInstance } from "fastify";
 import type { Pool } from "pg";
 import {
@@ -6,6 +12,7 @@ import {
   createRun,
   getRun,
   getTask,
+  claimNextTask,
   listRuns,
   listStores,
   listTasks,
@@ -38,6 +45,10 @@ export function registerTaskRoutes(app: FastifyInstance, db: Pool): void {
 
   app.get<{ Querystring: { runId?: string } }>("/api/tasks", async (request) => {
     return { tasks: await listTasks(db, request.query.runId) };
+  });
+
+  app.post<{ Body: TaskClaimInput }>("/api/tasks/claim", async (request) => {
+    return await claimNextTask(db, request.body);
   });
 
   app.post<{ Params: { runId: string }; Body: { tasks: CreateCategoryTaskInput[] } }>(

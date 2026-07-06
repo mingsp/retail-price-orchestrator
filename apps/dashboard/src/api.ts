@@ -1,5 +1,6 @@
 import type {
   AccountRegistryRow,
+  ArtifactRecord,
   CategoryTaskRecord,
   DashboardMessage,
   ProfileRegistryRow,
@@ -58,6 +59,13 @@ export async function fetchTasks(): Promise<CategoryTaskRecord[]> {
   if (!response.ok) throw new Error(`failed to fetch tasks: ${response.status}`);
   const data = (await response.json()) as { tasks: CategoryTaskRecord[] };
   return data.tasks;
+}
+
+export async function fetchArtifacts(): Promise<ArtifactRecord[]> {
+  const response = await fetch(`${apiBase}/api/artifacts`);
+  if (!response.ok) throw new Error(`failed to fetch artifacts: ${response.status}`);
+  const data = (await response.json()) as { artifacts: ArtifactRecord[] };
+  return data.artifacts;
 }
 
 export function connectDashboard(onMessage: (message: DashboardMessage) => void): WebSocket {

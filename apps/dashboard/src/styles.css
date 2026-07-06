@@ -89,7 +89,12 @@ p {
 .pill-normal,
 .pill-resolved,
 .pill-running,
-.pill-skipped {
+.pill-skipped,
+.pill-raw_jsonl,
+.pill-screenshot,
+.pill-log,
+.pill-export,
+.pill-other {
   background: #e6eefb;
   color: #244b87;
 }

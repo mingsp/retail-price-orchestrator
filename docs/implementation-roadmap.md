@@ -81,7 +81,8 @@ Deliverable:
 
 Build:
 
-- artifact upload endpoint
+- artifact presign endpoint
+- artifact metadata registry
 - raw JSONL registry
 - category plan registry
 - export job model
@@ -91,6 +92,8 @@ Build:
 Deliverable:
 
 - one store run produces a clean business CSV from raw worker artifacts.
+
+Status: artifact presign and metadata registry implemented; export jobs are next.
 
 ## Phase 6: Dashboard MVP
 

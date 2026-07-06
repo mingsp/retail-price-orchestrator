@@ -33,11 +33,18 @@
 - Added store/run/category task schema and APIs.
 - Added dashboard views for stores, runs, and category tasks.
 - Verified Phase 3 API by creating `system-test-store`, `phase3-api-test`, two category tasks, and assigning one task to `mm-worker/account-01/profile-account-01`.
+- Added `/api/tasks/claim` with account/profile eligibility checks and row locking.
+- Added worker task polling client, disabled by default with `WORKER_ENABLE_TASK_POLLING=false`.
+- Verified task claim behavior: first call claimed `Test Category B`, second call returned `no_task`.
+- Added artifact metadata table and API.
+- Added MinIO presigned PUT URL API.
+- Added dashboard artifacts view.
+- Verified artifact pipeline with a `raw_jsonl` metadata registration under `raw-artifacts/system-test/...`.
 
 ### Next
 
-1. Add worker-side task polling/claiming protocol.
-2. Add task progress WebSocket events.
-3. Add artifact upload registration against tasks.
-4. Add human verification notification channel.
-5. Add dashboard actions for account/profile/task status updates.
+1. Add task progress WebSocket events.
+2. Add human verification notification channel.
+3. Add dashboard actions for account/profile/task status updates.
+4. Add worker command adapter that wraps the existing CDP collection scripts.
+5. Add export job model and business CSV generation.

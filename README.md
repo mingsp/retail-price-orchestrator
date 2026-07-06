@@ -57,12 +57,67 @@ The system uses SSH only for deployment and troubleshooting. Normal coordination
 | Notifications | DingTalk webhook | DingTalk/Feishu/WeCom routing |
 | Process | launchctl / Windows Task Scheduler | systemd/daemon manager where available |
 
-## Repository Status
+## Current Status
 
-This repository starts with product and architecture design documents. Implementation should proceed from the implementation plan in `docs/implementation-roadmap.md`.
+Implemented:
 
-Start here:
+- master API with Fastify
+- PostgreSQL, Redis, MinIO health integration
+- worker WebSocket registration and heartbeat
+- account/profile/CDP identity registry
+- risk event API
+- store/run/category task API
+- concurrent-safe task claiming
+- MinIO presigned upload URL and artifact metadata registry
+- React dashboard for workers, accounts, profiles, risks, stores, runs, tasks, and artifacts
+- worker task polling client, disabled by default
+
+## Local Run
+
+Start infrastructure:
+
+```powershell
+docker compose -f infra/docker-compose.yml up -d
+```
+
+Run master:
+
+```powershell
+pnpm dev:master
+```
+
+Run a worker:
+
+```powershell
+$env:MASTER_BASE_URL="http://127.0.0.1:17890"
+$env:WORKER_ID="mm-worker"
+$env:WORKER_SHARED_TOKEN="change-me"
+$env:WORKER_ENABLE_TASK_POLLING="false"
+pnpm dev:worker
+```
+
+Enable worker task claiming only when the operator is ready:
+
+```powershell
+$env:WORKER_ENABLE_TASK_POLLING="true"
+$env:WORKER_TASK_POLLING_INTERVAL_MS="30000"
+pnpm dev:worker
+```
+
+Run dashboard:
+
+```powershell
+pnpm dev:dashboard
+```
+
+Open:
+
+- `http://localhost:5173/`
+- LAN example: `http://192.168.100.57:5173/`
+
+Start here for implementation context:
 
 - `docs/requirements.md`
 - `docs/technical-design.md`
 - `docs/superpowers/plans/2026-07-06-phase-1-worker-heartbeat.md`
+- `docs/superpowers/plans/2026-07-06-phase-2-3-registry-and-scheduler.md`

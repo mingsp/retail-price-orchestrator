@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import type { Redis } from "ioredis";
 import type { Client } from "minio";
 import type { Pool } from "pg";
+import { registerArtifactRoutes } from "./routes/artifacts.js";
 import { registerAccountRoutes } from "./routes/accounts.js";
 import { registerRiskEventRoutes } from "./routes/risk-events.js";
 import { registerTaskRoutes } from "./routes/tasks.js";
@@ -50,6 +51,7 @@ export async function buildServer(deps: ServerDeps) {
   registerAccountRoutes(app, deps.db);
   registerRiskEventRoutes(app, deps.db);
   registerTaskRoutes(app, deps.db);
+  registerArtifactRoutes(app, deps.db, deps.s3);
 
   return app;
 }
