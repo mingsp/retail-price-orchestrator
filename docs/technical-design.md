@@ -68,6 +68,8 @@ Messages:
 - `dashboard.snapshot`
 - `worker.updated`
 - `risk.created`
+- `task.updated`
+- `artifact.created`
 
 ## 4. Database
 

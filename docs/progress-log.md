@@ -44,11 +44,13 @@
 - Verified account action API by changing `account-02` to `cooldown` and restoring it to `safe`.
 - Added DingTalk webhook notification adapter for risk events.
 - Verified notification path with a `login_required` test risk event and resolved it.
+- Added dashboard WebSocket events for task updates and artifact creation.
+- Verified task update and artifact re-registration with the new broadcast path.
 
 ### Next
 
-1. Add task progress WebSocket events.
-2. Add worker command adapter that wraps the existing CDP collection scripts.
-3. Add export job model and business CSV generation.
-4. Add dashboard forms for creating stores/runs/tasks without API calls.
-5. Add worker deployment packaging for `mm`, `jl`, and `xf`.
+1. Add worker command adapter that wraps the existing CDP collection scripts.
+2. Add export job model and business CSV generation.
+3. Add dashboard forms for creating stores/runs/tasks without API calls.
+4. Add worker deployment packaging for `mm`, `jl`, and `xf`.
+5. Add per-worker auth tokens and operator login for dashboard.

@@ -308,4 +308,14 @@ export type DashboardMessage =
       type: "risk.created";
       sentAt: string;
       risk: RiskEventRecord;
+    }
+  | {
+      type: "task.updated";
+      sentAt: string;
+      task: CategoryTaskRecord;
+    }
+  | {
+      type: "artifact.created";
+      sentAt: string;
+      artifact: ArtifactRecord;
     };

@@ -65,6 +65,12 @@ export function App() {
       if (message.type === "risk.created") {
         setRisks((current) => [message.risk, ...current.filter((risk) => risk.riskId !== message.risk.riskId)]);
       }
+      if (message.type === "task.updated") {
+        setTasks((current) => upsertBy(current, message.task, "taskId"));
+      }
+      if (message.type === "artifact.created") {
+        setArtifacts((current) => upsertBy(current, message.artifact, "artifactId"));
+      }
     });
     ws.onopen = () => setConnection("live");
     ws.onclose = () => setConnection("disconnected");
@@ -226,4 +232,8 @@ function Metric({ label, value }: { label: string; value: number }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function upsertBy<T, K extends keyof T>(items: T[], item: T, key: K): T[] {
+  return [item, ...items.filter((current) => current[key] !== item[key])];
 }

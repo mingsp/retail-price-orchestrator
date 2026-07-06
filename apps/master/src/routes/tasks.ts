@@ -19,6 +19,7 @@ import {
   updateTask,
   upsertStore
 } from "../repositories/tasks.js";
+import { broadcastDashboard } from "../ws/dashboard-gateway.js";
 
 export function registerTaskRoutes(app: FastifyInstance, db: Pool): void {
   app.get("/api/stores", async () => {
@@ -48,7 +49,11 @@ export function registerTaskRoutes(app: FastifyInstance, db: Pool): void {
   });
 
   app.post<{ Body: TaskClaimInput }>("/api/tasks/claim", async (request) => {
-    return await claimNextTask(db, request.body);
+    const result = await claimNextTask(db, request.body);
+    if (result.task) {
+      broadcastDashboard({ type: "task.updated", sentAt: new Date().toISOString(), task: result.task });
+    }
+    return result;
   });
 
   app.post<{ Params: { runId: string }; Body: { tasks: CreateCategoryTaskInput[] } }>(
@@ -57,6 +62,9 @@ export function registerTaskRoutes(app: FastifyInstance, db: Pool): void {
       const tasks = await createCategoryTasks(db, request.params.runId, request.body?.tasks || []);
       if (!tasks.length && !(await getRun(db, request.params.runId))) {
         return reply.code(404).send({ error: "run_not_found" });
+      }
+      for (const task of tasks) {
+        broadcastDashboard({ type: "task.updated", sentAt: new Date().toISOString(), task });
       }
       return { tasks };
     }
@@ -73,6 +81,7 @@ export function registerTaskRoutes(app: FastifyInstance, db: Pool): void {
     async (request, reply) => {
       const task = await updateTask(db, request.params.taskId, request.body || {});
       if (!task) return reply.code(404).send({ error: "task_not_found" });
+      broadcastDashboard({ type: "task.updated", sentAt: new Date().toISOString(), task });
       return { task };
     }
   );
