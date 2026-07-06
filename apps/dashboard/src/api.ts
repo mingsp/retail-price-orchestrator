@@ -3,6 +3,9 @@ import type {
   AccountStatusUpdate,
   ArtifactRecord,
   CategoryTaskRecord,
+  CreateCategoryTaskInput,
+  CreateRunInput,
+  CreateStoreInput,
   DashboardMessage,
   ProfileRegistryRow,
   ProfileStatusUpdate,
@@ -50,6 +53,17 @@ export async function fetchStores(): Promise<StoreRecord[]> {
   return data.stores;
 }
 
+export async function createStore(input: CreateStoreInput): Promise<StoreRecord> {
+  const response = await fetch(`${apiBase}/api/stores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  if (!response.ok) throw new Error(`failed to create store: ${response.status}`);
+  const data = (await response.json()) as { store: StoreRecord };
+  return data.store;
+}
+
 export async function fetchRuns(): Promise<StoreRunRecord[]> {
   const response = await fetch(`${apiBase}/api/runs`);
   if (!response.ok) throw new Error(`failed to fetch runs: ${response.status}`);
@@ -57,9 +71,31 @@ export async function fetchRuns(): Promise<StoreRunRecord[]> {
   return data.runs;
 }
 
+export async function createRun(input: CreateRunInput): Promise<StoreRunRecord> {
+  const response = await fetch(`${apiBase}/api/runs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  if (!response.ok) throw new Error(`failed to create run: ${response.status}`);
+  const data = (await response.json()) as { run: StoreRunRecord };
+  return data.run;
+}
+
 export async function fetchTasks(): Promise<CategoryTaskRecord[]> {
   const response = await fetch(`${apiBase}/api/tasks`);
   if (!response.ok) throw new Error(`failed to fetch tasks: ${response.status}`);
+  const data = (await response.json()) as { tasks: CategoryTaskRecord[] };
+  return data.tasks;
+}
+
+export async function createCategoryTasks(runId: string, tasks: CreateCategoryTaskInput[]): Promise<CategoryTaskRecord[]> {
+  const response = await fetch(`${apiBase}/api/runs/${runId}/tasks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tasks })
+  });
+  if (!response.ok) throw new Error(`failed to create category tasks: ${response.status}`);
   const data = (await response.json()) as { tasks: CategoryTaskRecord[] };
   return data.tasks;
 }

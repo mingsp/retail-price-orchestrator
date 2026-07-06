@@ -12,6 +12,9 @@ import type {
 } from "@retail-orchestrator/shared";
 import {
   connectDashboard,
+  createCategoryTasks,
+  createRun,
+  createStore,
   fetchArtifacts,
   fetchAccounts,
   fetchProfiles,
@@ -27,6 +30,7 @@ import {
 } from "./api.js";
 import { AccountTable, ProfileTable, RiskEventTable } from "./registry-tables.js";
 import { ArtifactTable } from "./artifact-table.js";
+import { TaskForms } from "./task-forms.js";
 import { RunTable, StoreTable, TaskTable } from "./task-tables.js";
 import { WorkerStatusTable } from "./worker-status.js";
 
@@ -185,7 +189,38 @@ export function App() {
         {view === "risks" ? (
           <RiskEventTable risks={risks} onAction={(riskId, status) => runAction(() => updateRiskStatus(riskId, status))} />
         ) : null}
-        {view === "stores" ? <StoreTable stores={stores} /> : null}
+        {view === "stores" ? (
+          <>
+            <TaskForms
+              stores={stores}
+              runs={runs}
+              onCreateStore={(input) =>
+                runAction(() =>
+                  createStore({
+                    ...input,
+                    platform: "meituan_h5",
+                    status: "active",
+                    collectionPolicy: { pace: "low", assignment: "category_split" }
+                  })
+                )
+              }
+              onCreateRun={(input) => runAction(() => createRun(input))}
+              onCreateTasks={(runId, categoryNames) =>
+                runAction(() =>
+                  createCategoryTasks(
+                    runId,
+                    categoryNames.map((categoryName, index) => ({
+                      categoryName,
+                      categoryOrder: index + 1,
+                      priority: (index + 1) * 10
+                    }))
+                  )
+                )
+              }
+            />
+            <StoreTable stores={stores} />
+          </>
+        ) : null}
         {view === "runs" ? <RunTable runs={runs} /> : null}
         {view === "tasks" ? (
           <TaskTable

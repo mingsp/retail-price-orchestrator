@@ -199,6 +199,62 @@ p {
   padding: 8px 10px;
 }
 
+.form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  margin-bottom: 14px;
+}
+
+.form-panel {
+  background: #fff;
+  border: 1px solid #dce3e7;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.form-panel h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.form-panel input,
+.form-panel select,
+.form-panel textarea {
+  border: 1px solid #cfd8dd;
+  border-radius: 6px;
+  color: #172026;
+  font: inherit;
+  font-size: 13px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.form-panel textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.form-panel button {
+  background: #172026;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+@media (max-width: 920px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 table {
   border-collapse: collapse;
   min-width: 1180px;

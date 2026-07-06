@@ -113,8 +113,8 @@ pnpm dev:dashboard
 
 Open:
 
-- `http://localhost:5173/`
-- LAN example: `http://192.168.100.57:5173/`
+- `http://localhost:2808/`
+- LAN example: `http://192.168.100.57:2808/`
 
 Start here for implementation context:
 

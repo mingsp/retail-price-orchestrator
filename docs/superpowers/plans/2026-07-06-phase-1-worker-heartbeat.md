@@ -165,4 +165,4 @@ Runtime verification:
 - Master `/ready` returns PostgreSQL, Redis, and S3 as `ok`.
 - `mm-worker` appears in `/api/workers`.
 - Accounts `account-01` and `account-02` appear with profile and CDP mapping.
-- Dashboard is available at `http://localhost:5173/` and LAN address `http://192.168.100.57:5173/`.
+- Dashboard is available at `http://localhost:2808/` and LAN address `http://192.168.100.57:2808/`.
