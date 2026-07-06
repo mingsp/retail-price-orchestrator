@@ -22,16 +22,18 @@ Responsibilities:
 First version:
 
 - Fastify HTTP API
-- SQLite database
-- Local artifact directory
+- WebSocket gateways for workers and dashboard clients
+- PostgreSQL durable state
+- Redis live presence and event fanout
+- MinIO/S3-compatible artifact storage
 
 ### Worker Agent
 
 Responsibilities:
 
-- Register with master
-- Send heartbeat
-- Poll for assigned tasks
+- Register with master over WebSocket
+- Send heartbeat over WebSocket
+- Receive future commands over WebSocket
 - Start local collection scripts
 - Watch local status files
 - Upload artifacts
@@ -69,11 +71,11 @@ First version pages:
 ```text
 master creates run
   -> scheduler creates category tasks
-  -> worker polls task
+  -> worker receives or pulls task
   -> worker performs natural page0 capture
   -> worker runs low-frequency collection
   -> worker writes raw local JSONL
-  -> worker uploads status and artifacts
+  -> worker uploads status through WebSocket/API and artifacts to MinIO/S3
   -> master indexes progress
   -> exporter creates business CSV
 ```
@@ -130,3 +132,12 @@ Template-specific CSV/Excel export. Capture metadata is omitted unless explicitl
 - No raw captured production data in public repository.
 - Worker shared tokens must be stored in `.env`, never committed.
 
+## Phase 1 Baseline
+
+Phase 1 starts with the production baseline:
+
+- PostgreSQL, not SQLite.
+- Redis, not in-memory presence.
+- MinIO/S3, not local-only artifacts.
+- WebSocket, not HTTP polling only.
+- Account/profile/CDP identity in heartbeat from day one.

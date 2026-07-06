@@ -4,7 +4,7 @@
   "private": false,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --dir apps/master dev",
+    "dev:master": "pnpm --dir apps/master dev",
     "dev:worker": "pnpm --dir apps/worker dev",
     "dev:dashboard": "pnpm --dir apps/dashboard dev",
     "typecheck": "pnpm -r typecheck",
@@ -19,4 +19,3 @@
   "license": "MIT",
   "packageManager": "pnpm@10.0.0"
 }
-

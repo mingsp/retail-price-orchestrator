@@ -43,16 +43,17 @@ mm-worker / jl-worker / xf-worker
 
 The system uses SSH only for deployment and troubleshooting. Normal coordination uses worker-initiated HTTP polling or WebSocket.
 
-## Planned Tech Stack
+## Production Tech Stack
 
 | Layer | First Version | Later Scale Path |
 |---|---|---|
-| Master API | Node.js + TypeScript + Fastify | Same or NestJS if complexity grows |
-| Database | SQLite + Drizzle ORM | PostgreSQL |
-| Worker Agent | Node.js + TypeScript | Same |
+| Master API | Node.js + TypeScript + Fastify | Same, modularized by domain |
+| Database | PostgreSQL | Read replicas / partitioning if needed |
+| Presence / events | Redis | Redis Cluster if needed |
+| Realtime | WebSocket | WebSocket + event bus |
+| Artifact storage | MinIO/S3 | S3-compatible object storage |
+| Worker Agent | Node.js + TypeScript | Same, packaged per OS |
 | Dashboard | React + Vite + TanStack Query | Same |
-| Realtime | HTTP polling | WebSocket |
-| Files | Local artifact directory | MinIO/S3 |
 | Notifications | DingTalk webhook | DingTalk/Feishu/WeCom routing |
 | Process | launchctl / Windows Task Scheduler | systemd/daemon manager where available |
 
@@ -60,3 +61,8 @@ The system uses SSH only for deployment and troubleshooting. Normal coordination
 
 This repository starts with product and architecture design documents. Implementation should proceed from the implementation plan in `docs/implementation-roadmap.md`.
 
+Start here:
+
+- `docs/requirements.md`
+- `docs/technical-design.md`
+- `docs/superpowers/plans/2026-07-06-phase-1-worker-heartbeat.md`

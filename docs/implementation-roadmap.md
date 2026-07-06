@@ -12,16 +12,20 @@
 Build:
 
 - Fastify app
-- SQLite database
+- PostgreSQL connection
+- Redis connection
+- MinIO/S3 health check
+- WebSocket worker gateway
+- WebSocket dashboard gateway
 - health endpoint
 - worker registration endpoint
 - heartbeat endpoint
-- task polling endpoint
-- risk event endpoint
+- HTTP worker snapshot endpoint
+- worker account/profile/CDP snapshot persistence
 
 Deliverable:
 
-- master can show registered workers and latest heartbeat.
+- master can show registered workers, latest heartbeat, and account/profile/CDP identity.
 
 ## Phase 2: Worker Agent Skeleton
 
@@ -30,13 +34,13 @@ Build:
 - worker config loader
 - worker registration
 - heartbeat loop
-- task polling loop
+- WebSocket connection loop
 - local command runner abstraction
 - local artifact watcher
 
 Deliverable:
 
-- mm/jl/xf workers appear online in master.
+- mm/jl/xf workers appear online in master and dashboard.
 
 ## Phase 3: Task Model
 
@@ -101,10 +105,8 @@ Deliverable:
 
 Build:
 
-- WebSocket status stream
 - retry policies
-- PostgreSQL migration option
-- object storage option
+- queue partitioning
+- object lifecycle policies
 - worker auto-update
 - role-based dashboard access
-

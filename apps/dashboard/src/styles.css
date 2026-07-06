@@ -1,0 +1,134 @@
+:root {
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: #172026;
+  background: #f5f7f8;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  padding: 24px;
+}
+
+header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  margin: 0 0 6px;
+}
+
+h2 {
+  font-size: 18px;
+}
+
+p {
+  color: #61707a;
+  margin: 0;
+}
+
+.connection,
+.pill {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 9px;
+}
+
+.connection-live,
+.pill-online,
+.pill-safe {
+  background: #dff6e8;
+  color: #17663a;
+}
+
+.connection-disconnected,
+.connection-ws-error,
+.connection-http-error,
+.pill-device_risk,
+.pill-profile_risk,
+.pill-account_blocked {
+  background: #ffe2e2;
+  color: #a42222;
+}
+
+.pill-degraded,
+.pill-cooldown,
+.pill-manual_required {
+  background: #fff2cc;
+  color: #7a5300;
+}
+
+.metric-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  margin-bottom: 24px;
+}
+
+.metric {
+  background: #fff;
+  border: 1px solid #dce3e7;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.metric span {
+  color: #61707a;
+  display: block;
+  font-size: 12px;
+}
+
+.metric strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 6px;
+}
+
+.table-shell {
+  background: #fff;
+  border: 1px solid #dce3e7;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 1180px;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e8edf0;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eef3f5;
+  color: #3b4a53;
+  font-size: 12px;
+  position: sticky;
+  top: 0;
+}
+
+td span {
+  color: #61707a;
+  display: block;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.muted {
+  color: #8a969e;
+}
+
