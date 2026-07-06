@@ -1,0 +1,22 @@
+{
+  "name": "retail-price-orchestrator",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --dir apps/master dev",
+    "dev:worker": "pnpm --dir apps/worker dev",
+    "dev:dashboard": "pnpm --dir apps/dashboard dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "keywords": [
+    "scheduler",
+    "worker-agent",
+    "price-monitoring",
+    "human-in-the-loop"
+  ],
+  "license": "MIT",
+  "packageManager": "pnpm@10.0.0"
+}
+
