@@ -40,13 +40,14 @@ import {
   updateRiskStatus,
   updateTask
 } from "./api.js";
-import { AccountTable, ProfileTable, RiskEventTable } from "./registry-tables.js";
+import { AccountTable, ProfileTable } from "./registry-tables.js";
 import { ArtifactTable } from "./artifact-table.js";
 import { CommandCenter } from "./command-center.js";
 import { labelConnection } from "./display.js";
+import { ResourceMatrix } from "./resource-matrix.js";
+import { RiskInterventionStation } from "./risk-intervention.js";
 import { TaskForms } from "./task-forms.js";
 import { RunTable, StoreTable, TaskTable } from "./task-tables.js";
-import { WorkerStatusTable } from "./worker-status.js";
 
 type View = "command" | "workers" | "accounts" | "profiles" | "risks" | "stores" | "runs" | "tasks" | "artifacts";
 
@@ -245,7 +246,7 @@ export function App() {
             onNavigate={(target) => setView(target)}
           />
         ) : null}
-        {view === "workers" ? <WorkerStatusTable workers={workers} /> : null}
+        {view === "workers" ? <ResourceMatrix workers={workers} /> : null}
         {view === "accounts" ? (
           <AccountTable
             accounts={accounts}
@@ -273,9 +274,7 @@ export function App() {
             }
           />
         ) : null}
-        {view === "risks" ? (
-          <RiskEventTable risks={risks} onAction={(riskId, status) => runAction(() => updateRiskStatus(riskId, status))} />
-        ) : null}
+        {view === "risks" ? <RiskInterventionStation risks={risks} onAction={(riskId, status) => runAction(() => updateRiskStatus(riskId, status))} /> : null}
         {view === "stores" ? (
           <>
             <TaskForms
