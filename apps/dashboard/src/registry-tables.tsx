@@ -1,0 +1,150 @@
+import type { AccountRegistryRow, ProfileRegistryRow, RiskEventRecord } from "@retail-orchestrator/shared";
+
+export function AccountTable({ accounts }: { accounts: AccountRegistryRow[] }) {
+  return (
+    <div className="table-shell">
+      <table>
+        <thead>
+          <tr>
+            <th>账号</th>
+            <th>Worker</th>
+            <th>状态</th>
+            <th>风险</th>
+            <th>Profile</th>
+            <th>CDP</th>
+            <th>当前门店/类目</th>
+            <th>更新时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accounts.map((account) => (
+            <tr key={account.accountId}>
+              <td>
+                <strong>{account.displayName}</strong>
+                <span>{account.accountId}</span>
+                {account.maskedLogin ? <span>{account.maskedLogin}</span> : null}
+              </td>
+              <td>{account.workerId}</td>
+              <td>
+                <StatusPill status={account.status} />
+              </td>
+              <td>
+                <StatusPill status={account.riskLevel} />
+              </td>
+              <td>
+                <StatusPill status={account.profileStatus} />
+                <span>{account.profileId}</span>
+              </td>
+              <td>{account.cdpPort}</td>
+              <td>
+                {account.currentStoreName || account.currentStoreId || ""}
+                {account.currentCategoryName ? <span>{account.currentCategoryName}</span> : null}
+              </td>
+              <td>{formatTime(account.updatedAt)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function ProfileTable({ profiles }: { profiles: ProfileRegistryRow[] }) {
+  return (
+    <div className="table-shell">
+      <table>
+        <thead>
+          <tr>
+            <th>Profile</th>
+            <th>Worker</th>
+            <th>绑定账号</th>
+            <th>状态</th>
+            <th>CDP</th>
+            <th>风险次数</th>
+            <th>Profile 路径</th>
+            <th>更新时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          {profiles.map((profile) => (
+            <tr key={profile.profileId}>
+              <td>
+                <strong>{profile.profileId}</strong>
+              </td>
+              <td>{profile.workerId}</td>
+              <td>{profile.accountId || ""}</td>
+              <td>
+                <StatusPill status={profile.status} />
+              </td>
+              <td>{profile.cdpPort}</td>
+              <td>{profile.riskCount}</td>
+              <td>{profile.profilePath}</td>
+              <td>{formatTime(profile.updatedAt)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function RiskEventTable({ risks }: { risks: RiskEventRecord[] }) {
+  return (
+    <div className="table-shell">
+      <table>
+        <thead>
+          <tr>
+            <th>风险</th>
+            <th>状态</th>
+            <th>Worker</th>
+            <th>账号/Profile/CDP</th>
+            <th>门店/类目</th>
+            <th>现象</th>
+            <th>建议动作</th>
+            <th>创建时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          {risks.map((risk) => (
+            <tr key={risk.riskId}>
+              <td>
+                <StatusPill status={risk.severity} />
+                <span>{risk.riskType}</span>
+              </td>
+              <td>
+                <StatusPill status={risk.status} />
+              </td>
+              <td>{risk.workerId}</td>
+              <td>
+                {risk.accountId || ""}
+                {risk.profileId ? <span>{risk.profileId}</span> : null}
+                {risk.cdpPort ? <span>CDP {risk.cdpPort}</span> : null}
+              </td>
+              <td>
+                {risk.storeName || risk.storeId || ""}
+                {risk.categoryName ? <span>{risk.categoryName}</span> : null}
+              </td>
+              <td>{risk.observed}</td>
+              <td>{risk.recommendedAction}</td>
+              <td>{formatTime(risk.createdAt)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  return <span className={`pill pill-${status}`}>{status}</span>;
+}
+
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(new Date(value));
+}

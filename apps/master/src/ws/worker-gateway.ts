@@ -46,8 +46,8 @@ export function registerWorkerGateway(app: FastifyInstance, deps: WorkerGatewayD
         }
 
         if (message.type === "worker.risk_event") {
-          await handleRiskEvent(deps, message);
-          broadcastDashboard({ type: "risk.created", sentAt: new Date().toISOString(), risk: message.event });
+          const risk = await handleRiskEvent(deps, message);
+          broadcastDashboard({ type: "risk.created", sentAt: new Date().toISOString(), risk });
         }
       } catch (error) {
         app.log.error({ error }, "failed to handle worker websocket message");
@@ -82,9 +82,10 @@ async function handleHeartbeat(
   await deps.redis.publish("events:worker", JSON.stringify(message));
 }
 
-async function handleRiskEvent(deps: WorkerGatewayDeps, message: RiskEventPayload): Promise<void> {
-  await insertRiskEvent(deps.db, message);
+async function handleRiskEvent(deps: WorkerGatewayDeps, message: RiskEventPayload) {
+  const risk = await insertRiskEvent(deps.db, message);
   await deps.redis.publish("events:risk", JSON.stringify(message));
+  return risk;
 }
 
 function send(socket: WebSocket, message: MasterToWorkerMessage): void {

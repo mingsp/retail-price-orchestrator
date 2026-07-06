@@ -44,7 +44,9 @@ p {
 
 .connection-live,
 .pill-online,
-.pill-safe {
+.pill-safe,
+.pill-active,
+.pill-completed {
   background: #dff6e8;
   color: #17663a;
 }
@@ -54,16 +56,42 @@ p {
 .connection-http-error,
 .pill-device_risk,
 .pill-profile_risk,
-.pill-account_blocked {
+.pill-account_blocked,
+.pill-failed,
+.pill-cancelled {
   background: #ffe2e2;
   color: #a42222;
 }
 
 .pill-degraded,
 .pill-cooldown,
-.pill-manual_required {
+.pill-manual_required,
+.pill-watch,
+.pill-medium,
+.pill-open,
+.pill-acknowledged,
+.pill-paused,
+.pill-planned,
+.pill-pending,
+.pill-assigned {
   background: #fff2cc;
   color: #7a5300;
+}
+
+.pill-high,
+.pill-critical,
+.pill-blocked {
+  background: #ffe2e2;
+  color: #a42222;
+}
+
+.pill-low,
+.pill-normal,
+.pill-resolved,
+.pill-running,
+.pill-skipped {
+  background: #e6eefb;
+  color: #244b87;
 }
 
 .metric-grid {
@@ -99,6 +127,40 @@ p {
   overflow: auto;
 }
 
+.section-bar {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tabs {
+  background: #e8edf0;
+  border: 1px solid #d4dde2;
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+}
+
+.tab {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #3b4a53;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 11px;
+}
+
+.tab-active {
+  background: #fff;
+  color: #172026;
+}
+
 table {
   border-collapse: collapse;
   min-width: 1180px;
@@ -131,4 +193,3 @@ td span {
 .muted {
   color: #8a969e;
 }
-

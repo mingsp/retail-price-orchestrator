@@ -20,31 +20,24 @@
 - Implemented dashboard worker status page showing worker/account/profile/CDP identity.
 - Ran `pnpm install`.
 - Ran `pnpm typecheck` successfully across shared, master, worker, and dashboard.
-
-### Blocked
-
-- Runtime verification is blocked because Docker Desktop is not running on this Windows machine.
-- Command attempted:
-
-```powershell
-docker compose -f infra/docker-compose.yml up -d
-```
-
-- Docker error:
-
-```text
-failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
-```
+- Started Docker infrastructure successfully after Docker Desktop was opened.
+- Verified master `/ready` with PostgreSQL, Redis, and MinIO healthy.
+- Verified `mm-worker` heartbeat in `/api/workers`.
+- Verified account/profile/CDP registry endpoints:
+  - `/api/accounts`
+  - `/api/profiles`
+  - `/api/risk-events`
+- Added account/profile status management API.
+- Added risk event list/create/status API.
+- Added dashboard views for accounts, profiles, and risk events.
+- Added store/run/category task schema and APIs.
+- Added dashboard views for stores, runs, and category tasks.
+- Verified Phase 3 API by creating `system-test-store`, `phase3-api-test`, two category tasks, and assigning one task to `mm-worker/account-01/profile-account-01`.
 
 ### Next
 
-After Docker Desktop starts:
-
-1. Run `docker compose -f infra/docker-compose.yml up -d`.
-2. Run `pnpm dev:master`.
-3. Run `pnpm dev:worker`.
-4. Run `pnpm dev:dashboard`.
-5. Verify `/ready`.
-6. Verify `/api/workers`.
-7. Verify dashboard worker row shows account/profile/CDP identity.
-
+1. Add worker-side task polling/claiming protocol.
+2. Add task progress WebSocket events.
+3. Add artifact upload registration against tasks.
+4. Add human verification notification channel.
+5. Add dashboard actions for account/profile/task status updates.

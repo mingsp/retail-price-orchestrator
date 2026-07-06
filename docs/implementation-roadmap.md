@@ -7,7 +7,7 @@
 - No credentials.
 - No browser profiles.
 
-## Phase 1: Master Skeleton
+## Phase 1: Master + Worker Heartbeat
 
 Build:
 
@@ -27,20 +27,24 @@ Deliverable:
 
 - master can show registered workers, latest heartbeat, and account/profile/CDP identity.
 
-## Phase 2: Worker Agent Skeleton
+Status: implemented and runtime verified on `mm`.
+
+## Phase 2: Account/Profile Registry
 
 Build:
 
-- worker config loader
-- worker registration
-- heartbeat loop
-- WebSocket connection loop
-- local command runner abstraction
-- local artifact watcher
+- account registry API
+- profile registry API
+- account status update API
+- profile status update API
+- risk event API
+- dashboard account/profile/risk views
 
 Deliverable:
 
-- mm/jl/xf workers appear online in master and dashboard.
+- operators can identify which account is in which profile/CDP/device and mark risk state.
+
+Status: implemented as control-plane APIs and dashboard views.
 
 ## Phase 3: Task Model
 
@@ -55,6 +59,8 @@ Build:
 Deliverable:
 
 - master can assign category tasks to worker/account pairs.
+
+Status: implemented as store/run/category task tables and APIs; automatic task claiming is next.
 
 ## Phase 4: Risk Event Loop
 

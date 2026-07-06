@@ -71,20 +71,19 @@ Messages:
 
 ## 4. Database
 
-PostgreSQL tables for Phase 1:
+PostgreSQL durable tables:
 
 - `workers`
 - `worker_heartbeats`
 - `accounts`
 - `profiles`
-- `worker_accounts`
 - `risk_events`
-
-Later:
-
 - `stores`
-- `runs`
+- `store_runs`
 - `category_tasks`
+
+Future tables:
+
 - `artifacts`
 - `exports`
 
@@ -120,7 +119,44 @@ logs
 
 Phase 1 only needs health checks and config validation. Artifact upload starts in Phase 5, but MinIO is included from the beginning to avoid storage redesign.
 
-## 7. Worker Account Snapshot
+## 7. HTTP APIs
+
+Worker and identity:
+
+```text
+GET /api/workers
+GET /api/workers/:workerId
+GET /api/accounts
+GET /api/accounts/:accountId
+PATCH /api/accounts/:accountId/status
+GET /api/profiles
+GET /api/profiles/:profileId
+PATCH /api/profiles/:profileId/status
+```
+
+Risk loop:
+
+```text
+GET /api/risk-events
+POST /api/risk-events
+PATCH /api/risk-events/:riskId/status
+```
+
+Task control plane:
+
+```text
+GET /api/stores
+POST /api/stores
+GET /api/runs
+POST /api/runs
+GET /api/runs/:runId
+GET /api/tasks
+POST /api/runs/:runId/tasks
+GET /api/tasks/:taskId
+PATCH /api/tasks/:taskId
+```
+
+## 8. Worker Account Snapshot
 
 Worker sends account/profile/CDP identification in every heartbeat.
 
@@ -157,11 +193,10 @@ Example:
 }
 ```
 
-## 8. Security
+## 9. Security
 
 - Worker authenticates with shared token in Phase 1.
 - Replace with per-worker token in Phase 2.
 - No full phone numbers in dashboard by default.
 - No credentials in logs.
 - No profile directories in Git or artifact uploads.
-

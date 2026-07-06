@@ -17,3 +17,20 @@ export type ProfileStatus = (typeof profileStatuses)[number];
 export const riskLevels = ["normal", "watch", "high", "blocked"] as const;
 export type RiskLevel = (typeof riskLevels)[number];
 
+export const storeStatuses = ["active", "paused", "retired"] as const;
+export type StoreStatus = (typeof storeStatuses)[number];
+
+export const runStatuses = ["planned", "running", "paused", "completed", "failed", "cancelled"] as const;
+export type RunStatus = (typeof runStatuses)[number];
+
+export const taskStatuses = [
+  "pending",
+  "assigned",
+  "running",
+  "paused",
+  "manual_required",
+  "completed",
+  "failed",
+  "skipped"
+] as const;
+export type TaskStatus = (typeof taskStatuses)[number];

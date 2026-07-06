@@ -1,4 +1,12 @@
-import type { AccountStatus, ProfileStatus, RiskLevel, WorkerStatus } from "./status.js";
+import type {
+  AccountStatus,
+  ProfileStatus,
+  RiskLevel,
+  RunStatus,
+  StoreStatus,
+  TaskStatus,
+  WorkerStatus
+} from "./status.js";
 
 export type WorkerCapability =
   | "chrome_cdp"
@@ -104,6 +112,130 @@ export interface WorkerStatusRow {
   accounts: AccountSnapshot[];
 }
 
+export interface AccountRegistryRow extends AccountSnapshot {
+  workerId: string;
+  updatedAt: string;
+}
+
+export interface ProfileRegistryRow {
+  profileId: string;
+  workerId: string;
+  accountId?: string;
+  profilePath: string;
+  cdpPort: number;
+  status: ProfileStatus;
+  riskCount: number;
+  lastRiskAt?: string;
+  updatedAt: string;
+}
+
+export type RiskEventRecord = RiskEventPayload["event"] & {
+  riskId: string;
+  status: "open" | "acknowledged" | "resolved";
+  createdAt: string;
+  resolvedAt?: string;
+};
+
+export interface AccountStatusUpdate {
+  status?: AccountStatus;
+  riskLevel?: RiskLevel;
+  currentStoreId?: string | null;
+  currentStoreName?: string | null;
+  currentCategoryName?: string | null;
+  lastVerifiedAt?: string | null;
+  lastRiskAt?: string | null;
+}
+
+export interface ProfileStatusUpdate {
+  status?: ProfileStatus;
+  boundAccountId?: string | null;
+  lastRiskAt?: string | null;
+}
+
+export interface StoreRecord {
+  storeId: string;
+  name: string;
+  platform: "meituan_h5";
+  poiIdStr?: string;
+  url: string;
+  city?: string;
+  address?: string;
+  status: StoreStatus;
+  collectionPolicy: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoreRunRecord {
+  runId: string;
+  storeId: string;
+  storeName?: string;
+  runLabel: string;
+  status: RunStatus;
+  strategy: "category_split" | "account_rotation";
+  targetFinishAt?: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategoryTaskRecord {
+  taskId: string;
+  runId: string;
+  storeId: string;
+  storeName?: string;
+  categoryName: string;
+  categoryOrder: number;
+  status: TaskStatus;
+  priority: number;
+  assignedWorkerId?: string;
+  assignedAccountId?: string;
+  assignedProfileId?: string;
+  expectedItems?: number;
+  collectedItems: number;
+  cursor: Record<string, unknown>;
+  lastError?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateStoreInput {
+  storeId: string;
+  name: string;
+  platform?: "meituan_h5";
+  poiIdStr?: string;
+  url: string;
+  city?: string;
+  address?: string;
+  status?: StoreStatus;
+  collectionPolicy?: Record<string, unknown>;
+}
+
+export interface CreateRunInput {
+  storeId: string;
+  runLabel: string;
+  strategy?: "category_split" | "account_rotation";
+  targetFinishAt?: string;
+}
+
+export interface CreateCategoryTaskInput {
+  categoryName: string;
+  categoryOrder?: number;
+  priority?: number;
+  expectedItems?: number;
+}
+
+export interface UpdateCategoryTaskInput {
+  status?: TaskStatus;
+  assignedWorkerId?: string | null;
+  assignedAccountId?: string | null;
+  assignedProfileId?: string | null;
+  collectedItems?: number;
+  cursor?: Record<string, unknown>;
+  lastError?: string | null;
+}
+
 export type DashboardMessage =
   | {
       type: "dashboard.snapshot";
@@ -118,6 +250,5 @@ export type DashboardMessage =
   | {
       type: "risk.created";
       sentAt: string;
-      risk: RiskEventPayload["event"];
+      risk: RiskEventRecord;
     };
-

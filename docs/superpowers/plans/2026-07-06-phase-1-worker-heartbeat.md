@@ -154,9 +154,15 @@ Status on 2026-07-06:
 
 - [x] `pnpm install`
 - [x] `pnpm typecheck`
-- [ ] `docker compose -f infra/docker-compose.yml up -d`
-- [ ] `pnpm dev:master`
-- [ ] `pnpm dev:worker`
-- [ ] `pnpm dev:dashboard`
+- [x] `docker compose -f infra/docker-compose.yml up -d`
+- [x] `pnpm dev:master`
+- [x] `pnpm dev:worker`
+- [x] `pnpm dev:dashboard`
 
-Current blocker: Docker Desktop is not running on the Windows machine, so PostgreSQL/Redis/MinIO could not be started. Error: `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`.
+Runtime verification:
+
+- Docker services are healthy: PostgreSQL, Redis, MinIO.
+- Master `/ready` returns PostgreSQL, Redis, and S3 as `ok`.
+- `mm-worker` appears in `/api/workers`.
+- Accounts `account-01` and `account-02` appear with profile and CDP mapping.
+- Dashboard is available at `http://localhost:5173/` and LAN address `http://192.168.100.57:5173/`.

@@ -79,6 +79,59 @@ export async function ensureSchema(db: Pool): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       resolved_at TIMESTAMPTZ
     );
+
+    CREATE TABLE IF NOT EXISTS stores (
+      store_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'meituan_h5',
+      poi_id_str TEXT,
+      url TEXT NOT NULL,
+      city TEXT,
+      address TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      collection_policy JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS store_runs (
+      run_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      store_id TEXT NOT NULL REFERENCES stores(store_id) ON DELETE CASCADE,
+      run_label TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'planned',
+      strategy TEXT NOT NULL DEFAULT 'category_split',
+      target_finish_at TIMESTAMPTZ,
+      started_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS category_tasks (
+      task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      run_id UUID NOT NULL REFERENCES store_runs(run_id) ON DELETE CASCADE,
+      store_id TEXT NOT NULL REFERENCES stores(store_id) ON DELETE CASCADE,
+      category_name TEXT NOT NULL,
+      category_order INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      priority INTEGER NOT NULL DEFAULT 100,
+      assigned_worker_id TEXT REFERENCES workers(worker_id) ON DELETE SET NULL,
+      assigned_account_id TEXT REFERENCES accounts(account_id) ON DELETE SET NULL,
+      assigned_profile_id TEXT REFERENCES profiles(profile_id) ON DELETE SET NULL,
+      expected_items INTEGER,
+      collected_items INTEGER NOT NULL DEFAULT 0,
+      cursor JSONB NOT NULL DEFAULT '{}'::jsonb,
+      last_error TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_worker_heartbeats_worker_received ON worker_heartbeats(worker_id, received_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_accounts_worker ON accounts(worker_id);
+    CREATE INDEX IF NOT EXISTS idx_profiles_worker ON profiles(worker_id);
+    CREATE INDEX IF NOT EXISTS idx_risk_events_status ON risk_events(status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_store_runs_store ON store_runs(store_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_category_tasks_run_status ON category_tasks(run_id, status, priority ASC);
+    CREATE INDEX IF NOT EXISTS idx_category_tasks_assignee ON category_tasks(assigned_worker_id, assigned_account_id, status);
   `);
 }
-

@@ -4,6 +4,9 @@ import Fastify from "fastify";
 import type { Redis } from "ioredis";
 import type { Client } from "minio";
 import type { Pool } from "pg";
+import { registerAccountRoutes } from "./routes/accounts.js";
+import { registerRiskEventRoutes } from "./routes/risk-events.js";
+import { registerTaskRoutes } from "./routes/tasks.js";
 import { registerWorkerRoutes } from "./routes/workers.js";
 import { ensureBuckets } from "./s3.js";
 import { addDashboardClient, broadcastDashboard } from "./ws/dashboard-gateway.js";
@@ -44,20 +47,9 @@ export async function buildServer(deps: ServerDeps) {
 
   registerWorkerGateway(app, deps);
   registerWorkerRoutes(app, deps.db);
-
-  deps.redis.subscribe("events:worker", "events:risk").catch((error: unknown) => {
-    app.log.error({ error }, "failed to subscribe redis events");
-  });
-
-  deps.redis.on("message", async (channel: string) => {
-    if (channel === "events:worker") {
-      broadcastDashboard({
-        type: "dashboard.snapshot",
-        sentAt: new Date().toISOString(),
-        workers: await listWorkers(deps.db)
-      });
-    }
-  });
+  registerAccountRoutes(app, deps.db);
+  registerRiskEventRoutes(app, deps.db);
+  registerTaskRoutes(app, deps.db);
 
   return app;
 }
