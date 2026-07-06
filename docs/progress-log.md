@@ -50,11 +50,15 @@
 - Added master API client helpers in worker for task updates, risk events, artifact presign, and artifact registration.
 - Adapter now updates task progress from legacy script stdout, marks risk pauses as `manual_required`, and uploads JSONL/log artifacts after script completion.
 - Added `docs/worker-collector-adapter.md`.
+- Added Product Design brief in Chinese: `docs/product-design-brief.zh-CN.md`.
+- Localized dashboard visible labels, status pills, tabs, metrics, and action buttons to Chinese.
+- Enhanced category task creation to support `类目名|tag|预计商品数`.
+- Verified category task creation writes `cursor.categoryTag` and `expectedItems`.
 
 ### Next
 
 1. Add automatic `prepare-store-session` command to generate natural request source and category plan.
-2. Add export job model and business CSV generation.
-3. Add worker deployment packaging for `mm`, `jl`, and `xf`.
-4. Add per-worker auth tokens and operator login for dashboard.
-5. Add production deployment docs for `xf` master.
+2. Add run detail page with progress, risk timeline, artifacts, and account assignment.
+3. Add export job model and business CSV generation.
+4. Add worker deployment packaging for `mm`, `jl`, and `xf`.
+5. Add per-worker auth tokens and operator login for dashboard.

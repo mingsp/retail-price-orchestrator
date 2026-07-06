@@ -1,4 +1,5 @@
 import type { WorkerStatusRow } from "@retail-orchestrator/shared";
+import { labelStatus } from "./display.js";
 
 interface Props {
   workers: WorkerStatusRow[];
@@ -10,8 +11,8 @@ export function WorkerStatusTable({ workers }: Props) {
       <table>
         <thead>
           <tr>
-            <th>Worker</th>
-            <th>设备</th>
+            <th>Worker ID</th>
+            <th>机器</th>
             <th>状态</th>
             <th>最后心跳</th>
             <th>账号</th>
@@ -74,7 +75,7 @@ export function WorkerStatusTable({ workers }: Props) {
 }
 
 function StatusPill({ status }: { status: string }) {
-  return <span className={`pill pill-${status}`}>{status}</span>;
+  return <span className={`pill pill-${status}`}>{labelStatus(status)}</span>;
 }
 
 function formatTime(value: string) {
@@ -84,4 +85,3 @@ function formatTime(value: string) {
     second: "2-digit"
   }).format(new Date(value));
 }
-

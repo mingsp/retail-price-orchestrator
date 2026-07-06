@@ -1,4 +1,5 @@
 import type { ArtifactRecord } from "@retail-orchestrator/shared";
+import { labelStatus } from "./display.js";
 
 export function ArtifactTable({ artifacts }: { artifacts: ArtifactRecord[] }) {
   return (
@@ -6,7 +7,7 @@ export function ArtifactTable({ artifacts }: { artifacts: ArtifactRecord[] }) {
       <table>
         <thead>
           <tr>
-            <th>Artifact</th>
+            <th>产物</th>
             <th>对象</th>
             <th>归属</th>
             <th>账号/Profile</th>
@@ -47,7 +48,7 @@ export function ArtifactTable({ artifacts }: { artifacts: ArtifactRecord[] }) {
 }
 
 function StatusPill({ status }: { status: string }) {
-  return <span className={`pill pill-${status}`}>{status}</span>;
+  return <span className={`pill pill-${status}`}>{labelStatus(status)}</span>;
 }
 
 function formatTime(value: string) {

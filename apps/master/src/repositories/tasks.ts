@@ -99,9 +99,9 @@ export async function createCategoryTasks(
     const result = await db.query(
       `
       INSERT INTO category_tasks (
-        run_id, store_id, category_name, category_order, priority, expected_items
+        run_id, store_id, category_name, category_order, priority, expected_items, cursor
       )
-      VALUES ($1,$2,$3,$4,$5,$6)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
       RETURNING *
       `,
       [
@@ -110,7 +110,8 @@ export async function createCategoryTasks(
         task.categoryName,
         task.categoryOrder ?? index,
         task.priority ?? 100,
-        task.expectedItems ?? null
+        task.expectedItems ?? null,
+        JSON.stringify(task.cursor || {})
       ]
     );
     created.push(await getTask(db, result.rows[0].task_id) as CategoryTaskRecord);

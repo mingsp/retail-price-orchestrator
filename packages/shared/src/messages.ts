@@ -225,6 +225,7 @@ export interface CreateCategoryTaskInput {
   categoryOrder?: number;
   priority?: number;
   expectedItems?: number;
+  cursor?: Record<string, unknown>;
 }
 
 export interface UpdateCategoryTaskInput {

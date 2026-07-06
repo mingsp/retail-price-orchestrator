@@ -6,7 +6,7 @@ interface Props {
   runs: StoreRunRecord[];
   onCreateStore: (input: { storeId: string; name: string; url: string; poiIdStr?: string; city?: string; address?: string }) => Promise<void>;
   onCreateRun: (input: { storeId: string; runLabel: string; strategy: "category_split" | "account_rotation" }) => Promise<void>;
-  onCreateTasks: (runId: string, categoryNames: string[]) => Promise<void>;
+  onCreateTasks: (runId: string, rows: Array<{ categoryName: string; categoryTag?: string; expectedItems?: number }>) => Promise<void>;
 }
 
 export function TaskForms({ stores, runs, onCreateStore, onCreateRun, onCreateTasks }: Props) {
@@ -76,8 +76,8 @@ export function TaskForms({ stores, runs, onCreateStore, onCreateRun, onCreateTa
         className="form-panel"
         onSubmit={(event) => {
           event.preventDefault();
-          const names = categoryText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-          void onCreateTasks(taskRunId, names);
+          const rows = categoryText.split(/\r?\n/).map(parseCategoryLine).filter((row) => row.categoryName);
+          void onCreateTasks(taskRunId, rows);
         }}
       >
         <h3>批量类目</h3>
@@ -92,11 +92,21 @@ export function TaskForms({ stores, runs, onCreateStore, onCreateRun, onCreateTa
         <textarea
           value={categoryText}
           onChange={(event) => setCategoryText(event.target.value)}
-          placeholder={"每行一个类目\n例如：女性护理\n日用百货"}
+          placeholder={"每行一个类目；可选格式：类目名|tag|预计商品数\n例如：女性护理|123456|260\n日用百货"}
           required
         />
         <button type="submit">创建类目任务</button>
       </form>
     </div>
   );
+}
+
+function parseCategoryLine(line: string): { categoryName: string; categoryTag?: string; expectedItems?: number } {
+  const [categoryName = "", categoryTag = "", expectedText = ""] = line.split("|").map((part) => part.trim());
+  const expectedItems = Number(expectedText);
+  return {
+    categoryName,
+    categoryTag: categoryTag || undefined,
+    expectedItems: Number.isFinite(expectedItems) && expectedItems > 0 ? expectedItems : undefined
+  };
 }

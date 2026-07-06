@@ -30,6 +30,7 @@ import {
 } from "./api.js";
 import { AccountTable, ProfileTable, RiskEventTable } from "./registry-tables.js";
 import { ArtifactTable } from "./artifact-table.js";
+import { formatNumber, labelConnection } from "./display.js";
 import { TaskForms } from "./task-forms.js";
 import { RunTable, StoreTable, TaskTable } from "./task-tables.js";
 import { WorkerStatusTable } from "./worker-status.js";
@@ -116,7 +117,7 @@ export function App() {
       await refreshSnapshots();
     } catch (error) {
       console.error(error);
-      setActionError(error instanceof Error ? error.message : "action failed");
+      setActionError(error instanceof Error ? error.message : "操作失败");
     }
   }
 
@@ -125,17 +126,17 @@ export function App() {
       <header>
         <div>
           <h1>采集调度控制台</h1>
-          <p>Worker 在线状态、账号识别、Profile/CDP 绑定</p>
+          <p>设备在线状态、账号识别、Profile/CDP 绑定</p>
         </div>
-        <span className={`connection connection-${connection}`}>{connection}</span>
+        <span className={`connection connection-${connection}`}>{labelConnection(connection)}</span>
       </header>
 
       <section className="metric-grid">
-        <Metric label="Workers" value={workers.length} />
-        <Metric label="Online" value={workers.filter((row) => row.worker.status === "online").length} />
-        <Metric label="Accounts" value={workers.reduce((sum, row) => sum + row.accounts.length, 0)} />
+        <Metric label="设备数" value={workers.length} />
+        <Metric label="在线设备" value={workers.filter((row) => row.worker.status === "online").length} />
+        <Metric label="账号数" value={workers.reduce((sum, row) => sum + row.accounts.length, 0)} />
         <Metric
-          label="Risk"
+          label="风险账号"
           value={workers.reduce(
             (sum, row) => sum + row.accounts.filter((account) => account.status !== "safe").length,
             0
@@ -147,14 +148,14 @@ export function App() {
         <div className="section-bar">
           <h2>{viewTitle(view)}</h2>
           <nav className="tabs" aria-label="dashboard views">
-            <Tab active={view === "workers"} label="Workers" onClick={() => setView("workers")} />
-            <Tab active={view === "accounts"} label="Accounts" onClick={() => setView("accounts")} />
-            <Tab active={view === "profiles"} label="Profiles" onClick={() => setView("profiles")} />
-            <Tab active={view === "risks"} label="Risks" onClick={() => setView("risks")} />
-            <Tab active={view === "stores"} label="Stores" onClick={() => setView("stores")} />
-            <Tab active={view === "runs"} label="Runs" onClick={() => setView("runs")} />
-            <Tab active={view === "tasks"} label="Tasks" onClick={() => setView("tasks")} />
-            <Tab active={view === "artifacts"} label="Artifacts" onClick={() => setView("artifacts")} />
+            <Tab active={view === "workers"} label="设备" onClick={() => setView("workers")} />
+            <Tab active={view === "accounts"} label="账号" onClick={() => setView("accounts")} />
+            <Tab active={view === "profiles"} label="Profile/CDP" onClick={() => setView("profiles")} />
+            <Tab active={view === "risks"} label="风险" onClick={() => setView("risks")} />
+            <Tab active={view === "stores"} label="门店" onClick={() => setView("stores")} />
+            <Tab active={view === "runs"} label="批次" onClick={() => setView("runs")} />
+            <Tab active={view === "tasks"} label="类目任务" onClick={() => setView("tasks")} />
+            <Tab active={view === "artifacts"} label="原始产物" onClick={() => setView("artifacts")} />
           </nav>
         </div>
         {actionError ? <div className="action-error">{actionError}</div> : null}
@@ -205,14 +206,16 @@ export function App() {
                 )
               }
               onCreateRun={(input) => runAction(() => createRun(input))}
-              onCreateTasks={(runId, categoryNames) =>
+              onCreateTasks={(runId, rows) =>
                 runAction(() =>
                   createCategoryTasks(
                     runId,
-                    categoryNames.map((categoryName, index) => ({
-                      categoryName,
+                    rows.map((row, index) => ({
+                      categoryName: row.categoryName,
                       categoryOrder: index + 1,
-                      priority: (index + 1) * 10
+                      priority: (index + 1) * 10,
+                      expectedItems: row.expectedItems,
+                      cursor: row.categoryTag ? { categoryTag: row.categoryTag } : {}
                     }))
                   )
                 )
@@ -229,7 +232,7 @@ export function App() {
               runAction(() =>
                 updateTask(taskId, {
                   status,
-                  lastError: status === "failed" ? "Marked failed from dashboard" : null
+                  lastError: status === "failed" ? "由控制台标记失败" : null
                 })
               )
             }
@@ -264,7 +267,7 @@ function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div className="metric">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong>{formatNumber(value)}</strong>
     </div>
   );
 }

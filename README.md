@@ -121,6 +121,7 @@ Open:
 Start here for implementation context:
 
 - `docs/requirements.md`
+- `docs/product-design-brief.zh-CN.md`
 - `docs/technical-design.md`
 - `docs/superpowers/plans/2026-07-06-phase-1-worker-heartbeat.md`
 - `docs/superpowers/plans/2026-07-06-phase-2-3-registry-and-scheduler.md`

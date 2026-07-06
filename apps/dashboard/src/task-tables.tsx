@@ -1,4 +1,5 @@
 import type { CategoryTaskRecord, StoreRecord, StoreRunRecord, TaskStatus } from "@retail-orchestrator/shared";
+import { labelStatus } from "./display.js";
 
 export function StoreTable({ stores }: { stores: StoreRecord[] }) {
   return (
@@ -95,6 +96,7 @@ export function TaskTable({
             <th>状态</th>
             <th>分配</th>
             <th>采集数</th>
+            <th>类目Tag</th>
             <th>游标</th>
             <th>错误</th>
             <th>更新时间</th>
@@ -106,7 +108,7 @@ export function TaskTable({
             <tr key={task.taskId}>
               <td>
                 <strong>{task.categoryName}</strong>
-                <span>order {task.categoryOrder} / priority {task.priority}</span>
+                <span>序号 {task.categoryOrder} / 优先级 {task.priority}</span>
                 <span>{task.taskId}</span>
               </td>
               <td>
@@ -123,18 +125,19 @@ export function TaskTable({
               </td>
               <td>
                 {task.collectedItems}
-                {task.expectedItems ? <span>expected {task.expectedItems}</span> : null}
+                {task.expectedItems ? <span>预计 {task.expectedItems}</span> : null}
               </td>
+              <td>{readCategoryTag(task.cursor)}</td>
               <td>{JSON.stringify(task.cursor)}</td>
               <td>{task.lastError || ""}</td>
               <td>{formatTime(task.updatedAt)}</td>
               <td>
                 <div className="actions">
-                  <button type="button" onClick={() => onAction(task.taskId, "running")}>Run</button>
-                  <button type="button" onClick={() => onAction(task.taskId, "paused")}>Pause</button>
-                  <button type="button" onClick={() => onAction(task.taskId, "manual_required")}>Manual</button>
-                  <button type="button" onClick={() => onAction(task.taskId, "completed")}>Done</button>
-                  <button type="button" onClick={() => onAction(task.taskId, "failed")}>Fail</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "running")}>运行</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "paused")}>暂停</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "manual_required")}>需人工</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "completed")}>完成</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "failed")}>失败</button>
                 </div>
               </td>
             </tr>
@@ -145,8 +148,12 @@ export function TaskTable({
   );
 }
 
+function readCategoryTag(cursor: Record<string, unknown>): string {
+  return typeof cursor.categoryTag === "string" ? cursor.categoryTag : "";
+}
+
 function StatusPill({ status }: { status: string }) {
-  return <span className={`pill pill-${status}`}>{status}</span>;
+  return <span className={`pill pill-${status}`}>{labelStatus(status)}</span>;
 }
 
 function formatTime(value: string) {

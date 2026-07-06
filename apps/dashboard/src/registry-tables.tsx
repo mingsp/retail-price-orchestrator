@@ -1,4 +1,5 @@
 import type { AccountRegistryRow, ProfileRegistryRow, RiskEventRecord } from "@retail-orchestrator/shared";
+import { labelStatus } from "./display.js";
 
 export function AccountTable({
   accounts,
@@ -50,10 +51,10 @@ export function AccountTable({
               <td>{formatTime(account.updatedAt)}</td>
               <td>
                 <div className="actions">
-                  <button type="button" onClick={() => onAction(account.accountId, "safe")}>Safe</button>
-                  <button type="button" onClick={() => onAction(account.accountId, "cooldown")}>Cooldown</button>
-                  <button type="button" onClick={() => onAction(account.accountId, "manual_required")}>Manual</button>
-                  <button type="button" onClick={() => onAction(account.accountId, "account_blocked")}>Blocked</button>
+                  <button type="button" onClick={() => onAction(account.accountId, "safe")}>安全</button>
+                  <button type="button" onClick={() => onAction(account.accountId, "cooldown")}>冷却</button>
+                  <button type="button" onClick={() => onAction(account.accountId, "manual_required")}>需人工</button>
+                  <button type="button" onClick={() => onAction(account.accountId, "account_blocked")}>封禁</button>
                 </div>
               </td>
             </tr>
@@ -104,9 +105,9 @@ export function ProfileTable({
               <td>{formatTime(profile.updatedAt)}</td>
               <td>
                 <div className="actions">
-                  <button type="button" onClick={() => onAction(profile.profileId, "safe")}>Safe</button>
-                  <button type="button" onClick={() => onAction(profile.profileId, "profile_risk")}>Risk</button>
-                  <button type="button" onClick={() => onAction(profile.profileId, "retired")}>Retire</button>
+                  <button type="button" onClick={() => onAction(profile.profileId, "safe")}>安全</button>
+                  <button type="button" onClick={() => onAction(profile.profileId, "profile_risk")}>风险</button>
+                  <button type="button" onClick={() => onAction(profile.profileId, "retired")}>停用</button>
                 </div>
               </td>
             </tr>
@@ -165,8 +166,8 @@ export function RiskEventTable({
               <td>{formatTime(risk.createdAt)}</td>
               <td>
                 <div className="actions">
-                  <button type="button" onClick={() => onAction(risk.riskId, "acknowledged")}>Ack</button>
-                  <button type="button" onClick={() => onAction(risk.riskId, "resolved")}>Resolve</button>
+                  <button type="button" onClick={() => onAction(risk.riskId, "acknowledged")}>确认</button>
+                  <button type="button" onClick={() => onAction(risk.riskId, "resolved")}>解决</button>
                 </div>
               </td>
             </tr>
@@ -178,7 +179,7 @@ export function RiskEventTable({
 }
 
 function StatusPill({ status }: { status: string }) {
-  return <span className={`pill pill-${status}`}>{status}</span>;
+  return <span className={`pill pill-${status}`}>{labelStatus(status)}</span>;
 }
 
 function formatTime(value: string) {
