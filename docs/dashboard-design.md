@@ -1,94 +1,140 @@
-# Dashboard Design
+# Retail-Radar UI 设计蓝图
 
-## Overview
+更新日期：2026-07-06
 
-The dashboard should feel like an operations console, not a marketing page.
+## 1. 整体布局框架
 
-Primary screen:
+Retail-Radar 是面向运营的采集生产作业系统，不是单机爬虫工具。页面结构采用企业级控制台布局：
 
-- store run progress
-- worker status
-- account/profile health
-- current blockers
-- latest risk events
+- 左侧固定导航：承载核心模块入口，保持门店、任务、资源、风险、产物之间快速切换。
+- 顶部上下文栏：展示当前模块标题、系统定位、连接状态和关键运行环境。
+- 主工作区：按页面职责切换看板、任务树、资源矩阵、风险处理台和数据资产页。
+- 抽屉式详情：后续用于任务详情、账号详情、风险事件详情，避免频繁跳页。
+- 实时连接层：WebSocket 推送 worker 心跳、任务状态、风险事件、产物上传。
 
-## Main Navigation
+路由建议：
 
-- Overview
-- Stores
-- Runs
-- Workers
-- Accounts
-- Profiles
-- Risk Events
-- Artifacts
-- Exports
-- Settings
+| 路由 | 中文名称 | 业务目标 |
+|---|---|---|
+| `/` | 作战指挥大盘 | 全局态势感知 |
+| `/batches` | 调度与批次 | 管理门店、批次、类目切片 |
+| `/resources` | 资源拓扑 | 识别设备、CDP、Profile、账号绑定 |
+| `/risks` | 风控干预台 | 验证码、403/418、封禁等人工闭环 |
+| `/assets` | 数据资产 | raw JSONL、CSV、Excel、完整度管理 |
 
-## Overview Cards
+## 2. 页面一：作战指挥大盘
 
-Use compact cards with dense operational data:
+目标：运营打开系统后，第一眼回答四个问题：整体进度如何、哪里卡住、谁在执行、产物是否已归档。
 
-- Active runs
-- Online workers
-- Running tasks
-- Manual-required events
-- Device-risk workers
-- Finished exports
+布局：
 
-## Worker Table
+- 顶部 KPI 卡片：今日目标门店、Worker 在线数、健康账号池、有效 SKU 数。
+- 左侧警报中心：优先展示验证码、账号封禁、设备离线、任务阻断。
+- 右侧门店进度槽：按门店聚合类目任务，使用分段进度条表达完成、运行、暂停、失败。
+- 底部实时数据流：以业务语言展示 worker 心跳、任务状态、风险事件、产物归档。
+- 资源健康快照：展示在线设备、健康账号、运行任务、已完成任务。
 
-Columns:
+交互：
 
-- worker id
-- machine label
-- OS
-- status
-- current store
-- current account
-- current category
-- last heartbeat
-- last log summary
+- 点击「去处理」跳转到风控干预台或类目任务页。
+- 点击门店进度槽进入批次详情。
+- WebSocket 推送后自动刷新 KPI、警报、进度和实时数据流。
+- 高危事件使用红色，警告使用琥珀色，健康运行使用绿色，空闲/完成使用灰色。
 
-## Risk Event Table
+当前实现：
 
-Columns:
+- 已新增 `CommandCenter` React 页面。
+- 已接入左侧 SaaS 控制台导航。
+- 已使用 Tailwind CSS、Lucide Icons 和中文状态文案。
+- Dashboard 端口固定为 `2808`。
 
-- severity
-- event type
-- worker
-- account
-- profile
-- store
-- category
-- observed symptom
-- recommended action
-- status
-- created time
+## 3. 页面二：调度与任务管理
 
-Actions:
+目标：管理一个门店如何被拆成多个类目任务，以及每个类目由哪个 worker、账号、Profile 执行。
 
-- mark handled
-- resume task
-- reassign task
-- retire profile
-- mark device risk
+布局：
 
-## Run Detail
+- 左侧批次列表：按日期、门店、计划类型展示今日/本周采集批次。
+- 右侧任务拆解树：展示门店下的类目切片。
+- 中央 Kanban：等待中、采集中、遇阻暂停、已完成四列。
+- 右侧详情抽屉：展示选中类目的 worker、账号、Profile、CDP、采集进度、最近日志。
 
-Sections:
+交互：
 
-- progress by category
-- assigned accounts
-- raw artifact links
-- risk timeline
-- export status
+- 支持人工拖拽类目任务到其他 worker 或账号。
+- 支持批量创建类目任务。
+- 支持一键暂停批次、一键恢复低频执行。
+- 遇阻任务必须保留断点，禁止静默丢弃。
 
-## Visual Style
+## 4. 页面三：资源拓扑与账号矩阵
 
-- restrained operational UI
-- high information density
-- clear status colors
-- no decorative hero sections
-- no marketing layout
+目标：解决“哪台电脑、哪个 CDP、哪个 Profile、哪个账号、正在采什么”无法快速识别的问题。
 
+布局：
+
+- 物理层：按 `mm`、`jl`、`xf` 等机器分组。
+- 端口层：每台机器下展示 CDP 端口卡片。
+- 账号层：端口卡片内展示 Profile 名称、账号标识、手机号尾号、风险等级、当前门店/类目。
+- 状态覆盖层：在线、空闲、采集中、冷却中、验证码、封控限制。
+
+交互：
+
+- 点击账号卡片打开账号详情抽屉。
+- 点击 CDP 端口复制连接信息。
+- 标记账号为安全、观察、冷却、封禁。
+- 标记 Profile 为安全、风险、废弃。
+
+## 5. 页面四：风控与人工干预台
+
+目标：把验证码、身份核实、403、418、账号封禁、Profile 风险变成可追踪、可恢复的生产事件。
+
+布局：
+
+- 左栏事件队列：按严重程度和创建时间排序。
+- 右栏处理区：展示截图、错误 JSON、最近日志、设备/账号/Profile/CDP 信息。
+- 操作区：输入验证码/短信、标记账号死号、换备用账号、休眠任务、恢复执行。
+
+交互：
+
+- 高危事件默认置顶。
+- 人工处理后必须写入处理结果和备注。
+- 标记账号封禁时同步建议下线 Profile。
+- 同设备多账号异常时提示可能存在设备/IP 层风险。
+
+## 6. 页面五：数据资产与产物管理
+
+目标：运营只需要判断数据是否完整、是否可下载、是否可用于后续业务分析。
+
+布局：
+
+- 批次结果列表：按门店、日期、批次展示。
+- 状态流转：`原始 JSONL 已上传` -> `清洗中` -> `已生成业务 CSV/Excel`。
+- 完整度指标：类目完成率、SKU 数、漏采类目、异常任务数。
+- 下载区：CSV、Excel、raw JSONL、日志包、截图包。
+
+交互：
+
+- 点击批次进入产物详情。
+- 支持重新清洗、重新导出。
+- 缺失类目直接生成补采任务。
+- 保留原始商品名，不在导出层改写采集到的商品名称。
+
+## 7. 视觉规范
+
+- 主色：科技蓝、深靛蓝。
+- 高危：红色。
+- 警告：琥珀色/黄色。
+- 健康：绿色。
+- 空闲/完成/未分配：灰色。
+- 卡片圆角：控制在 8px，保持企业后台的稳定感。
+- 不使用营销式大图、不使用纯装饰光斑、不做单色系页面。
+- 信息密度优先，视觉层级通过字号、留白、边框、阴影和状态色表达。
+
+## 8. 前端实现建议
+
+- React + Vite + TypeScript。
+- Tailwind CSS 作为基础样式层。
+- Lucide Icons 作为统一图标库。
+- 后续复杂表格可接入 TanStack Table。
+- 拖拽分配可接入 `@dnd-kit/core`。
+- 实时状态通过 WebSocket 进入前端状态层，避免频繁轮询。

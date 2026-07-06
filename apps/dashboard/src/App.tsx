@@ -1,4 +1,16 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  AlertTriangle,
+  Boxes,
+  Database,
+  LayoutDashboard,
+  ListChecks,
+  Monitor,
+  Network,
+  Store,
+  UserRoundCog
+} from "lucide-react";
 import type {
   AccountRegistryRow,
   ArtifactRecord,
@@ -30,12 +42,13 @@ import {
 } from "./api.js";
 import { AccountTable, ProfileTable, RiskEventTable } from "./registry-tables.js";
 import { ArtifactTable } from "./artifact-table.js";
-import { formatNumber, labelConnection } from "./display.js";
+import { CommandCenter } from "./command-center.js";
+import { labelConnection } from "./display.js";
 import { TaskForms } from "./task-forms.js";
 import { RunTable, StoreTable, TaskTable } from "./task-tables.js";
 import { WorkerStatusTable } from "./worker-status.js";
 
-type View = "workers" | "accounts" | "profiles" | "risks" | "stores" | "runs" | "tasks" | "artifacts";
+type View = "command" | "workers" | "accounts" | "profiles" | "risks" | "stores" | "runs" | "tasks" | "artifacts";
 
 export function App() {
   const [workers, setWorkers] = useState<WorkerStatusRow[]>([]);
@@ -47,7 +60,7 @@ export function App() {
   const [tasks, setTasks] = useState<CategoryTaskRecord[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
   const [connection, setConnection] = useState("connecting");
-  const [view, setView] = useState<View>("workers");
+  const [view, setView] = useState<View>("command");
   const [actionError, setActionError] = useState("");
 
   useEffect(() => {
@@ -122,43 +135,67 @@ export function App() {
   }
 
   return (
-    <main>
-      <header>
-        <div>
-          <h1>采集调度控制台</h1>
-          <p>设备在线状态、账号识别、Profile/CDP 绑定</p>
+    <div className="min-h-screen bg-[linear-gradient(135deg,#eef4fb_0%,#f8fbff_48%,#eef2ff_100%)] text-slate-950">
+      <aside className="fixed inset-y-0 left-0 z-20 w-72 border-r border-white/70 bg-white/72 px-5 py-6 shadow-soft backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-950 text-white shadow-glow">
+            <Network className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="text-lg font-semibold">Retail-Radar</div>
+            <div className="text-xs text-slate-500">竞对价格监控与调度中台</div>
+          </div>
         </div>
-        <span className={`connection connection-${connection}`}>{labelConnection(connection)}</span>
-      </header>
 
-      <section className="metric-grid">
-        <Metric label="设备数" value={workers.length} />
-        <Metric label="在线设备" value={workers.filter((row) => row.worker.status === "online").length} />
-        <Metric label="账号数" value={workers.reduce((sum, row) => sum + row.accounts.length, 0)} />
-        <Metric
-          label="风险账号"
-          value={workers.reduce(
-            (sum, row) => sum + row.accounts.filter((account) => account.status !== "safe").length,
-            0
-          )}
-        />
-      </section>
+        <nav className="mt-8 space-y-1">
+          <SideNav active={view === "command"} icon={<LayoutDashboard className="h-4 w-4" />} label="作战指挥大盘" onClick={() => setView("command")} />
+          <SideNav active={view === "stores" || view === "runs"} icon={<Store className="h-4 w-4" />} label="调度与批次" onClick={() => setView("stores")} />
+          <SideNav active={view === "tasks"} icon={<ListChecks className="h-4 w-4" />} label="类目任务" onClick={() => setView("tasks")} />
+          <SideNav active={view === "workers"} icon={<Monitor className="h-4 w-4" />} label="资源拓扑" onClick={() => setView("workers")} />
+          <SideNav active={view === "accounts"} icon={<UserRoundCog className="h-4 w-4" />} label="账号识别" onClick={() => setView("accounts")} />
+          <SideNav active={view === "profiles"} icon={<UserRoundCog className="h-4 w-4" />} label="Profile/CDP" onClick={() => setView("profiles")} />
+          <SideNav active={view === "risks"} icon={<AlertTriangle className="h-4 w-4" />} label="风控干预台" onClick={() => setView("risks")} />
+          <SideNav active={view === "artifacts"} icon={<Database className="h-4 w-4" />} label="数据资产" onClick={() => setView("artifacts")} />
+        </nav>
 
-      <section>
-        <div className="section-bar">
-          <h2>{viewTitle(view)}</h2>
-          <nav className="tabs" aria-label="dashboard views">
-            <Tab active={view === "workers"} label="设备" onClick={() => setView("workers")} />
-            <Tab active={view === "accounts"} label="账号" onClick={() => setView("accounts")} />
-            <Tab active={view === "profiles"} label="Profile/CDP" onClick={() => setView("profiles")} />
-            <Tab active={view === "risks"} label="风险" onClick={() => setView("risks")} />
-            <Tab active={view === "stores"} label="门店" onClick={() => setView("stores")} />
-            <Tab active={view === "runs"} label="批次" onClick={() => setView("runs")} />
-            <Tab active={view === "tasks"} label="类目任务" onClick={() => setView("tasks")} />
-            <Tab active={view === "artifacts"} label="原始产物" onClick={() => setView("artifacts")} />
-          </nav>
+        <div className="absolute bottom-5 left-5 right-5 rounded-lg border border-slate-200 bg-slate-950 p-4 text-white">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-300">实时连接</span>
+            <span className={`connection connection-${connection}`}>{labelConnection(connection)}</span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
+            <span>Master 17890</span>
+            <span>Dashboard 2808</span>
+          </div>
         </div>
+      </aside>
+
+      <main className="ml-72 min-h-screen px-8 py-7">
+        <header className="mb-6 flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold text-blue-700">即时零售竞对价格监控</div>
+            <h1 className="m-0 mt-1 text-2xl font-semibold tracking-normal">{viewTitle(view)}</h1>
+          </div>
+          <div className="flex items-center gap-3 rounded-full border border-white/70 bg-white/80 px-4 py-2 text-sm text-slate-600 shadow-sm backdrop-blur">
+            <Boxes className="h-4 w-4 text-blue-600" />
+            多设备 · 多账号 · 低频合规采集
+          </div>
+        </header>
+
         {actionError ? <div className="action-error">{actionError}</div> : null}
+        {view === "command" ? (
+          <CommandCenter
+            workers={workers}
+            accounts={accounts}
+            risks={risks}
+            stores={stores}
+            runs={runs}
+            tasks={tasks}
+            artifacts={artifacts}
+            connection={connection}
+            onNavigate={(target) => setView(target)}
+          />
+        ) : null}
         {view === "workers" ? <WorkerStatusTable workers={workers} /> : null}
         {view === "accounts" ? (
           <AccountTable
@@ -239,20 +276,28 @@ export function App() {
           />
         ) : null}
         {view === "artifacts" ? <ArtifactTable artifacts={artifacts} /> : null}
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
 
-function Tab({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function SideNav({ active, icon, label, onClick }: { active: boolean; icon: ReactNode; label: string; onClick: () => void }) {
   return (
-    <button className={active ? "tab tab-active" : "tab"} type="button" onClick={onClick}>
-      {label}
+    <button
+      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
+        active ? "bg-slate-950 text-white shadow-soft" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+      }`}
+      type="button"
+      onClick={onClick}
+    >
+      {icon}
+      <span>{label}</span>
     </button>
   );
 }
 
 function viewTitle(view: View) {
+  if (view === "command") return "作战指挥大盘";
   if (view === "accounts") return "账号识别";
   if (view === "profiles") return "Profile/CDP";
   if (view === "risks") return "风险事件";
@@ -261,15 +306,6 @@ function viewTitle(view: View) {
   if (view === "tasks") return "类目任务";
   if (view === "artifacts") return "原始产物";
   return "Worker 状态";
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="metric">
-      <span>{label}</span>
-      <strong>{formatNumber(value)}</strong>
-    </div>
-  );
 }
 
 function upsertBy<T, K extends keyof T>(items: T[], item: T, key: K): T[] {
