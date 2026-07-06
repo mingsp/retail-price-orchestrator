@@ -46,11 +46,15 @@
 - Verified notification path with a `login_required` test risk event and resolved it.
 - Added dashboard WebSocket events for task updates and artifact creation.
 - Verified task update and artifact re-registration with the new broadcast path.
+- Added worker legacy CDP collector adapter.
+- Added master API client helpers in worker for task updates, risk events, artifact presign, and artifact registration.
+- Adapter now updates task progress from legacy script stdout, marks risk pauses as `manual_required`, and uploads JSONL/log artifacts after script completion.
+- Added `docs/worker-collector-adapter.md`.
 
 ### Next
 
-1. Add worker command adapter that wraps the existing CDP collection scripts.
+1. Add automatic `prepare-store-session` command to generate natural request source and category plan.
 2. Add export job model and business CSV generation.
-3. Add dashboard forms for creating stores/runs/tasks without API calls.
-4. Add worker deployment packaging for `mm`, `jl`, and `xf`.
-5. Add per-worker auth tokens and operator login for dashboard.
+3. Add worker deployment packaging for `mm`, `jl`, and `xf`.
+4. Add per-worker auth tokens and operator login for dashboard.
+5. Add production deployment docs for `xf` master.

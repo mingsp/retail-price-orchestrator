@@ -6,7 +6,12 @@ export interface WorkerConfig {
   workerSharedToken: string;
   heartbeatIntervalMs: number;
   taskPollingEnabled: boolean;
+  taskExecutionEnabled: boolean;
   taskPollingIntervalMs: number;
+  legacyScriptRoot: string;
+  legacyScriptName: string;
+  categoryPlanFile?: string;
+  artifactBucket: string;
   worker: WorkerIdentity;
   accounts: AccountSnapshot[];
 }
@@ -19,7 +24,12 @@ export function loadConfig(): WorkerConfig {
     workerSharedToken: process.env.WORKER_SHARED_TOKEN || "change-me",
     heartbeatIntervalMs: Number(process.env.WORKER_HEARTBEAT_INTERVAL_MS || 10_000),
     taskPollingEnabled: (process.env.WORKER_ENABLE_TASK_POLLING || "false") === "true",
+    taskExecutionEnabled: (process.env.WORKER_ENABLE_TASK_EXECUTION || "false") === "true",
     taskPollingIntervalMs: Number(process.env.WORKER_TASK_POLLING_INTERVAL_MS || 30_000),
+    legacyScriptRoot: process.env.WORKER_LEGACY_SCRIPT_ROOT || "..",
+    legacyScriptName: process.env.WORKER_LEGACY_SCRIPT_NAME || "mt-cdp-inpage-category-products.mjs",
+    categoryPlanFile: process.env.WORKER_CATEGORY_PLAN_FILE || undefined,
+    artifactBucket: process.env.WORKER_ARTIFACT_BUCKET || "raw-artifacts",
     worker: {
       workerId,
       machineLabel: process.env.WORKER_MACHINE_LABEL || workerId,

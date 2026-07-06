@@ -72,6 +72,7 @@ Implemented:
 - MinIO presigned upload URL and artifact metadata registry
 - React dashboard for workers, accounts, profiles, risks, stores, runs, tasks, and artifacts
 - worker task polling client, disabled by default
+- worker legacy CDP collector adapter, disabled by default
 
 ## Local Run
 
@@ -101,6 +102,7 @@ Enable worker task claiming only when the operator is ready:
 
 ```powershell
 $env:WORKER_ENABLE_TASK_POLLING="true"
+$env:WORKER_ENABLE_TASK_EXECUTION="true"
 $env:WORKER_TASK_POLLING_INTERVAL_MS="30000"
 pnpm dev:worker
 ```
@@ -122,3 +124,4 @@ Start here for implementation context:
 - `docs/technical-design.md`
 - `docs/superpowers/plans/2026-07-06-phase-1-worker-heartbeat.md`
 - `docs/superpowers/plans/2026-07-06-phase-2-3-registry-and-scheduler.md`
+- `docs/worker-collector-adapter.md`
