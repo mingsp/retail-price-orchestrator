@@ -56,7 +56,7 @@
 - [x] Add worker task polling or WebSocket command protocol.
 - [x] Add task claim endpoint with account/profile eligibility checks.
 - [x] Add artifact upload metadata and MinIO object registration.
-- [ ] Add dashboard actions for task/account/profile state transitions.
+- [x] Add dashboard actions for task/account/profile state transitions.
 - [ ] Add notification adapter for manual verification events.
 
 Verification:
@@ -66,3 +66,4 @@ Verification:
 - Worker task polling is controlled by `WORKER_ENABLE_TASK_POLLING`; default is `false`.
 - `/api/artifacts/presign` returned a MinIO presigned PUT URL.
 - `/api/artifacts` registered a `raw_jsonl` artifact metadata row.
+- Account action API changed `account-02` to `cooldown` and restored it to `safe`.

@@ -1,6 +1,12 @@
 import type { AccountRegistryRow, ProfileRegistryRow, RiskEventRecord } from "@retail-orchestrator/shared";
 
-export function AccountTable({ accounts }: { accounts: AccountRegistryRow[] }) {
+export function AccountTable({
+  accounts,
+  onAction
+}: {
+  accounts: AccountRegistryRow[];
+  onAction: (accountId: string, action: "safe" | "cooldown" | "manual_required" | "account_blocked") => void;
+}) {
   return (
     <div className="table-shell">
       <table>
@@ -14,6 +20,7 @@ export function AccountTable({ accounts }: { accounts: AccountRegistryRow[] }) {
             <th>CDP</th>
             <th>当前门店/类目</th>
             <th>更新时间</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -41,6 +48,14 @@ export function AccountTable({ accounts }: { accounts: AccountRegistryRow[] }) {
                 {account.currentCategoryName ? <span>{account.currentCategoryName}</span> : null}
               </td>
               <td>{formatTime(account.updatedAt)}</td>
+              <td>
+                <div className="actions">
+                  <button type="button" onClick={() => onAction(account.accountId, "safe")}>Safe</button>
+                  <button type="button" onClick={() => onAction(account.accountId, "cooldown")}>Cooldown</button>
+                  <button type="button" onClick={() => onAction(account.accountId, "manual_required")}>Manual</button>
+                  <button type="button" onClick={() => onAction(account.accountId, "account_blocked")}>Blocked</button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -49,7 +64,13 @@ export function AccountTable({ accounts }: { accounts: AccountRegistryRow[] }) {
   );
 }
 
-export function ProfileTable({ profiles }: { profiles: ProfileRegistryRow[] }) {
+export function ProfileTable({
+  profiles,
+  onAction
+}: {
+  profiles: ProfileRegistryRow[];
+  onAction: (profileId: string, action: "safe" | "profile_risk" | "retired") => void;
+}) {
   return (
     <div className="table-shell">
       <table>
@@ -63,6 +84,7 @@ export function ProfileTable({ profiles }: { profiles: ProfileRegistryRow[] }) {
             <th>风险次数</th>
             <th>Profile 路径</th>
             <th>更新时间</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -80,6 +102,13 @@ export function ProfileTable({ profiles }: { profiles: ProfileRegistryRow[] }) {
               <td>{profile.riskCount}</td>
               <td>{profile.profilePath}</td>
               <td>{formatTime(profile.updatedAt)}</td>
+              <td>
+                <div className="actions">
+                  <button type="button" onClick={() => onAction(profile.profileId, "safe")}>Safe</button>
+                  <button type="button" onClick={() => onAction(profile.profileId, "profile_risk")}>Risk</button>
+                  <button type="button" onClick={() => onAction(profile.profileId, "retired")}>Retire</button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -88,7 +117,13 @@ export function ProfileTable({ profiles }: { profiles: ProfileRegistryRow[] }) {
   );
 }
 
-export function RiskEventTable({ risks }: { risks: RiskEventRecord[] }) {
+export function RiskEventTable({
+  risks,
+  onAction
+}: {
+  risks: RiskEventRecord[];
+  onAction: (riskId: string, status: RiskEventRecord["status"]) => void;
+}) {
   return (
     <div className="table-shell">
       <table>
@@ -102,6 +137,7 @@ export function RiskEventTable({ risks }: { risks: RiskEventRecord[] }) {
             <th>现象</th>
             <th>建议动作</th>
             <th>创建时间</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -127,6 +163,12 @@ export function RiskEventTable({ risks }: { risks: RiskEventRecord[] }) {
               <td>{risk.observed}</td>
               <td>{risk.recommendedAction}</td>
               <td>{formatTime(risk.createdAt)}</td>
+              <td>
+                <div className="actions">
+                  <button type="button" onClick={() => onAction(risk.riskId, "acknowledged")}>Ack</button>
+                  <button type="button" onClick={() => onAction(risk.riskId, "resolved")}>Resolve</button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

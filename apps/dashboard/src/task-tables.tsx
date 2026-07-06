@@ -1,4 +1,4 @@
-import type { CategoryTaskRecord, StoreRecord, StoreRunRecord } from "@retail-orchestrator/shared";
+import type { CategoryTaskRecord, StoreRecord, StoreRunRecord, TaskStatus } from "@retail-orchestrator/shared";
 
 export function StoreTable({ stores }: { stores: StoreRecord[] }) {
   return (
@@ -78,7 +78,13 @@ export function RunTable({ runs }: { runs: StoreRunRecord[] }) {
   );
 }
 
-export function TaskTable({ tasks }: { tasks: CategoryTaskRecord[] }) {
+export function TaskTable({
+  tasks,
+  onAction
+}: {
+  tasks: CategoryTaskRecord[];
+  onAction: (taskId: string, status: TaskStatus) => void;
+}) {
   return (
     <div className="table-shell">
       <table>
@@ -92,6 +98,7 @@ export function TaskTable({ tasks }: { tasks: CategoryTaskRecord[] }) {
             <th>游标</th>
             <th>错误</th>
             <th>更新时间</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -121,6 +128,15 @@ export function TaskTable({ tasks }: { tasks: CategoryTaskRecord[] }) {
               <td>{JSON.stringify(task.cursor)}</td>
               <td>{task.lastError || ""}</td>
               <td>{formatTime(task.updatedAt)}</td>
+              <td>
+                <div className="actions">
+                  <button type="button" onClick={() => onAction(task.taskId, "running")}>Run</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "paused")}>Pause</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "manual_required")}>Manual</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "completed")}>Done</button>
+                  <button type="button" onClick={() => onAction(task.taskId, "failed")}>Fail</button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

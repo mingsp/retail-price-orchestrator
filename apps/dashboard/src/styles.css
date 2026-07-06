@@ -166,6 +166,39 @@ p {
   color: #172026;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.actions button {
+  background: #fff;
+  border: 1px solid #cfd8dd;
+  border-radius: 6px;
+  color: #172026;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 8px;
+}
+
+.actions button:hover {
+  border-color: #80919b;
+}
+
+.action-error {
+  background: #ffe2e2;
+  border: 1px solid #f2b8b8;
+  border-radius: 8px;
+  color: #8e1f1f;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+}
+
 table {
   border-collapse: collapse;
   min-width: 1180px;

@@ -7,6 +7,7 @@ import type {
   RiskEventRecord,
   StoreRecord,
   StoreRunRecord,
+  TaskStatus,
   WorkerStatusRow
 } from "@retail-orchestrator/shared";
 import {
@@ -18,7 +19,11 @@ import {
   fetchRuns,
   fetchStores,
   fetchTasks,
-  fetchWorkers
+  fetchWorkers,
+  updateAccountStatus,
+  updateProfileStatus,
+  updateRiskStatus,
+  updateTask
 } from "./api.js";
 import { AccountTable, ProfileTable, RiskEventTable } from "./registry-tables.js";
 import { ArtifactTable } from "./artifact-table.js";
@@ -38,6 +43,7 @@ export function App() {
   const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
   const [connection, setConnection] = useState("connecting");
   const [view, setView] = useState<View>("workers");
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     refreshSnapshots().catch((error) => {
@@ -93,6 +99,17 @@ export function App() {
     setProfiles(profileRows);
   }
 
+  async function runAction(action: () => Promise<unknown>) {
+    try {
+      setActionError("");
+      await action();
+      await refreshSnapshots();
+    } catch (error) {
+      console.error(error);
+      setActionError(error instanceof Error ? error.message : "action failed");
+    }
+  }
+
   return (
     <main>
       <header>
@@ -130,13 +147,53 @@ export function App() {
             <Tab active={view === "artifacts"} label="Artifacts" onClick={() => setView("artifacts")} />
           </nav>
         </div>
+        {actionError ? <div className="action-error">{actionError}</div> : null}
         {view === "workers" ? <WorkerStatusTable workers={workers} /> : null}
-        {view === "accounts" ? <AccountTable accounts={accounts} /> : null}
-        {view === "profiles" ? <ProfileTable profiles={profiles} /> : null}
-        {view === "risks" ? <RiskEventTable risks={risks} /> : null}
+        {view === "accounts" ? (
+          <AccountTable
+            accounts={accounts}
+            onAction={(accountId, status) =>
+              runAction(() =>
+                updateAccountStatus(accountId, {
+                  status,
+                  riskLevel: status === "account_blocked" ? "blocked" : status === "safe" ? "normal" : "watch",
+                  lastRiskAt: status === "safe" ? null : new Date().toISOString()
+                })
+              )
+            }
+          />
+        ) : null}
+        {view === "profiles" ? (
+          <ProfileTable
+            profiles={profiles}
+            onAction={(profileId, status) =>
+              runAction(() =>
+                updateProfileStatus(profileId, {
+                  status,
+                  lastRiskAt: status === "safe" ? null : new Date().toISOString()
+                })
+              )
+            }
+          />
+        ) : null}
+        {view === "risks" ? (
+          <RiskEventTable risks={risks} onAction={(riskId, status) => runAction(() => updateRiskStatus(riskId, status))} />
+        ) : null}
         {view === "stores" ? <StoreTable stores={stores} /> : null}
         {view === "runs" ? <RunTable runs={runs} /> : null}
-        {view === "tasks" ? <TaskTable tasks={tasks} /> : null}
+        {view === "tasks" ? (
+          <TaskTable
+            tasks={tasks}
+            onAction={(taskId, status: TaskStatus) =>
+              runAction(() =>
+                updateTask(taskId, {
+                  status,
+                  lastError: status === "failed" ? "Marked failed from dashboard" : null
+                })
+              )
+            }
+          />
+        ) : null}
         {view === "artifacts" ? <ArtifactTable artifacts={artifacts} /> : null}
       </section>
     </main>
