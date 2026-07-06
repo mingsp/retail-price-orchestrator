@@ -50,6 +50,46 @@ import { WorkerStatusTable } from "./worker-status.js";
 
 type View = "command" | "workers" | "accounts" | "profiles" | "risks" | "stores" | "runs" | "tasks" | "artifacts";
 
+interface NavItem {
+  view: View;
+  label: string;
+  meta: string;
+  icon: ReactNode;
+  active?: (view: View) => boolean;
+}
+
+const navGroups: Array<{ label: string; items: NavItem[] }> = [
+  {
+    label: "作战",
+    items: [
+      { view: "command", label: "作战指挥大盘", meta: "全局态势", icon: <LayoutDashboard className="h-4 w-4" /> },
+      {
+        view: "stores",
+        label: "调度与批次",
+        meta: "门店计划",
+        icon: <Store className="h-4 w-4" />,
+        active: (view) => view === "stores" || view === "runs"
+      },
+      { view: "tasks", label: "类目任务", meta: "任务切片", icon: <ListChecks className="h-4 w-4" /> }
+    ]
+  },
+  {
+    label: "资源",
+    items: [
+      { view: "workers", label: "资源拓扑", meta: "设备心跳", icon: <Monitor className="h-4 w-4" /> },
+      { view: "accounts", label: "账号识别", meta: "账号状态", icon: <UserRoundCog className="h-4 w-4" /> },
+      { view: "profiles", label: "Profile/CDP", meta: "浏览器绑定", icon: <UserRoundCog className="h-4 w-4" /> }
+    ]
+  },
+  {
+    label: "闭环",
+    items: [
+      { view: "risks", label: "风控干预台", meta: "人工处理", icon: <AlertTriangle className="h-4 w-4" /> },
+      { view: "artifacts", label: "数据资产", meta: "产物归档", icon: <Database className="h-4 w-4" /> }
+    ]
+  }
+];
+
 export function App() {
   const [workers, setWorkers] = useState<WorkerStatusRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRegistryRow[]>([]);
@@ -135,30 +175,37 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#eef4fb_0%,#f8fbff_48%,#eef2ff_100%)] text-slate-950">
-      <aside className="fixed inset-y-0 left-0 z-20 w-72 border-r border-white/70 bg-white/72 px-5 py-6 shadow-soft backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-950 text-white shadow-glow">
+    <div className="app-shell">
+      <aside className="sidebar-shell">
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-mark">
             <Network className="h-5 w-5" />
           </div>
-          <div>
-            <div className="text-lg font-semibold">Retail-Radar</div>
-            <div className="text-xs text-slate-500">竞对价格监控与调度中台</div>
+          <div className="min-w-0">
+            <div className="sidebar-brand-title">Retail-Radar</div>
+            <div className="sidebar-brand-subtitle">竞对价格监控与调度中台</div>
           </div>
         </div>
 
-        <nav className="mt-8 space-y-1">
-          <SideNav active={view === "command"} icon={<LayoutDashboard className="h-4 w-4" />} label="作战指挥大盘" onClick={() => setView("command")} />
-          <SideNav active={view === "stores" || view === "runs"} icon={<Store className="h-4 w-4" />} label="调度与批次" onClick={() => setView("stores")} />
-          <SideNav active={view === "tasks"} icon={<ListChecks className="h-4 w-4" />} label="类目任务" onClick={() => setView("tasks")} />
-          <SideNav active={view === "workers"} icon={<Monitor className="h-4 w-4" />} label="资源拓扑" onClick={() => setView("workers")} />
-          <SideNav active={view === "accounts"} icon={<UserRoundCog className="h-4 w-4" />} label="账号识别" onClick={() => setView("accounts")} />
-          <SideNav active={view === "profiles"} icon={<UserRoundCog className="h-4 w-4" />} label="Profile/CDP" onClick={() => setView("profiles")} />
-          <SideNav active={view === "risks"} icon={<AlertTriangle className="h-4 w-4" />} label="风控干预台" onClick={() => setView("risks")} />
-          <SideNav active={view === "artifacts"} icon={<Database className="h-4 w-4" />} label="数据资产" onClick={() => setView("artifacts")} />
+        <nav className="sidebar-nav" aria-label="Retail-Radar modules">
+          {navGroups.map((group) => (
+            <div className="nav-group" key={group.label}>
+              <div className="nav-group-label">{group.label}</div>
+              {group.items.map((item) => (
+                <SideNav
+                  active={item.active ? item.active(view) : view === item.view}
+                  icon={item.icon}
+                  key={item.view}
+                  label={item.label}
+                  meta={item.meta}
+                  onClick={() => setView(item.view)}
+                />
+              ))}
+            </div>
+          ))}
         </nav>
 
-        <div className="absolute bottom-5 left-5 right-5 rounded-lg border border-slate-200 bg-slate-950 p-4 text-white">
+        <div className="sidebar-runtime-card">
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-300">实时连接</span>
             <span className={`connection connection-${connection}`}>{labelConnection(connection)}</span>
@@ -167,11 +214,13 @@ export function App() {
             <span>Master 17890</span>
             <span>Dashboard 2808</span>
           </div>
+          <div className="mt-3 h-px bg-white/10" />
+          <div className="mt-3 text-xs leading-5 text-slate-400">Worker 心跳、风险事件、产物上传通过 WebSocket 实时回传。</div>
         </div>
       </aside>
 
-      <main className="ml-72 min-h-screen px-8 py-7">
-        <header className="mb-6 flex items-center justify-between">
+      <main className="content-shell">
+        <header className="content-header">
           <div>
             <div className="text-sm font-semibold text-blue-700">即时零售竞对价格监控</div>
             <h1 className="m-0 mt-1 text-2xl font-semibold tracking-normal">{viewTitle(view)}</h1>
@@ -281,17 +330,18 @@ export function App() {
   );
 }
 
-function SideNav({ active, icon, label, onClick }: { active: boolean; icon: ReactNode; label: string; onClick: () => void }) {
+function SideNav({ active, icon, label, meta, onClick }: { active: boolean; icon: ReactNode; label: string; meta: string; onClick: () => void }) {
   return (
     <button
-      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
-        active ? "bg-slate-950 text-white shadow-soft" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-      }`}
+      className={`nav-item ${active ? "active" : ""}`}
       type="button"
       onClick={onClick}
     >
-      {icon}
-      <span>{label}</span>
+      <span className="nav-icon">{icon}</span>
+      <span className="nav-text">
+        <span className="nav-label">{label}</span>
+        <span className="nav-meta">{meta}</span>
+      </span>
     </button>
   );
 }

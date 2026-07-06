@@ -4,10 +4,14 @@ import {
   ArrowRight,
   CheckCircle2,
   Database,
+  HardDriveUpload,
   Monitor,
   Radio,
+  Server,
+  ShieldAlert,
   ShieldCheck,
   Store,
+  TimerReset,
   Users,
   Wifi,
   WifiOff,
@@ -48,11 +52,16 @@ export function CommandCenter({ workers, accounts, risks, stores, runs, tasks, a
   const alerts = buildAlerts(risks, tasks, workers);
   const progressRows = buildStoreProgress(stores, tasks);
   const feed = buildLiveFeed({ workers, risks, tasks, artifacts, runs });
+  const manualBlockedTasks = tasks.filter((task) => task.status === "manual_required" || task.status === "failed").length;
+  const openRisks = risks.filter((risk) => risk.status !== "resolved").length;
+  const uploadedRawArtifacts = artifacts.filter((artifact) => artifact.kind === "raw_jsonl").length;
+  const latestHeartbeatAt = latestDate(workers.map((row) => row.worker.lastSeenAt));
+  const workerPreviewRows = buildWorkerPreview(workers);
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-lg border border-white/70 bg-slate-950 px-8 py-7 text-white shadow-glow">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-cyan-500/10" />
+      <section className="relative overflow-hidden rounded-lg border border-slate-800 bg-slate-950 px-8 py-7 text-white shadow-glow">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/70 to-transparent" />
         <div className="relative flex items-start justify-between gap-8">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm text-blue-100">
@@ -63,6 +72,11 @@ export function CommandCenter({ workers, accounts, risks, stores, runs, tasks, a
               即时零售竞对价格监控与调度中台
             </h1>
             <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300">今日重点：门店全量采集进度、账号风险、Worker 心跳和数据产物统一看板。</p>
+            <div className="mt-5 grid max-w-3xl grid-cols-3 gap-3">
+              <HeroMeta label="最近心跳" value={latestHeartbeatAt ? formatTime(latestHeartbeatAt) : "--:--"} />
+              <HeroMeta label="阻断任务" value={`${manualBlockedTasks} 个`} tone={manualBlockedTasks ? "red" : "green"} />
+              <HeroMeta label="RAW 产物" value={`${uploadedRawArtifacts} 个`} />
+            </div>
           </div>
           <div className="min-w-48 rounded-lg border border-white/10 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-center gap-2 text-sm text-slate-300">
@@ -103,6 +117,41 @@ export function CommandCenter({ workers, accounts, risks, stores, runs, tasks, a
           value={formatNumber(skuCount)}
           hint={`原始产物 ${artifacts.length} 个`}
           tone="indigo"
+        />
+      </section>
+
+      <section className="grid grid-cols-4 gap-4">
+        <OpsCell
+          icon={<ShieldAlert className="h-4 w-4" />}
+          label="风险待处理"
+          value={`${openRisks} 个`}
+          detail="验证码、封禁、403/418"
+          tone={openRisks ? "red" : "green"}
+          onClick={() => onNavigate("risks")}
+        />
+        <OpsCell
+          icon={<TimerReset className="h-4 w-4" />}
+          label="人工阻断任务"
+          value={`${manualBlockedTasks} 个`}
+          detail="需恢复、换号或休眠"
+          tone={manualBlockedTasks ? "amber" : "green"}
+          onClick={() => onNavigate("tasks")}
+        />
+        <OpsCell
+          icon={<Server className="h-4 w-4" />}
+          label="断联设备"
+          value={`${offlineWorkers} 台`}
+          detail="基于 worker 心跳判断"
+          tone={offlineWorkers ? "amber" : "green"}
+          onClick={() => onNavigate("workers")}
+        />
+        <OpsCell
+          icon={<HardDriveUpload className="h-4 w-4" />}
+          label="产物链路"
+          value={uploadedRawArtifacts ? "已产生 RAW" : "等待上传"}
+          detail={`${artifacts.length} 个产物记录`}
+          tone={uploadedRawArtifacts ? "green" : "neutral"}
+          onClick={() => onNavigate("artifacts")}
         />
       </section>
 
@@ -198,19 +247,48 @@ export function CommandCenter({ workers, accounts, risks, stores, runs, tasks, a
         <div className="glass-panel rounded-lg p-5">
           <PanelHeader
             icon={<Users className="h-5 w-5 text-indigo-600" />}
-            title="资源健康快照"
-            subtitle="设备、账号、任务、产物的即时概况"
+            title="Worker 资源预览"
+            subtitle="展示设备、账号、Profile/CDP 和当前类目"
             actionLabel="资源拓扑"
             onAction={() => onNavigate("workers")}
           />
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <MiniStat label="在线设备" value={activeWorkers} total={workers.length} />
-            <MiniStat label="健康账号" value={accounts.length - riskAccounts} total={accounts.length} />
-            <MiniStat label="运行任务" value={tasks.filter((task) => task.status === "running").length} total={tasks.length} />
-            <MiniStat label="已完成任务" value={tasks.filter((task) => task.status === "completed").length} total={tasks.length} />
+          <div className="mt-4 space-y-3">
+            {workerPreviewRows.length ? (
+              workerPreviewRows.map((row) => (
+                <div className="rounded-lg border border-slate-200 bg-white p-3" key={row.workerId}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-slate-900">{row.machineLabel}</div>
+                      <div className="mt-1 truncate text-xs text-slate-500">{row.workerId} · {row.networkMode}</div>
+                    </div>
+                    <span className={`pill pill-${row.status}`}>{labelStatus(row.status)}</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                    <ResourceChip label="账号" value={`${row.accountCount}`} />
+                    <ResourceChip label="风险" value={`${row.riskAccountCount}`} tone={row.riskAccountCount ? "red" : "green"} />
+                    <ResourceChip label="CDP" value={row.cdpPorts || "-"} />
+                  </div>
+                  <div className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+                    {row.currentWork || "当前没有上报采集中的门店/类目"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState title="暂无 Worker 心跳" description="Worker 启动后会在这里显示设备、账号和 CDP 绑定关系。" />
+            )}
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function HeroMeta({ label, value, tone = "blue" }: { label: string; value: string; tone?: "blue" | "green" | "red" }) {
+  const valueClass = tone === "green" ? "text-emerald-200" : tone === "red" ? "text-red-200" : "text-blue-100";
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/10 px-3 py-2">
+      <div className="text-xs text-slate-400">{label}</div>
+      <div className={`mt-1 text-sm font-semibold ${valueClass}`}>{value}</div>
     </div>
   );
 }
@@ -233,6 +311,40 @@ function KpiCard({ icon, label, value, hint, tone }: { icon: ReactNode; label: s
       <div className="mt-1 text-3xl font-semibold text-slate-950">{value}</div>
       <div className="mt-2 text-sm text-slate-500">{hint}</div>
     </div>
+  );
+}
+
+function OpsCell({
+  icon,
+  label,
+  value,
+  detail,
+  tone,
+  onClick
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+  tone: "green" | "amber" | "red" | "neutral";
+  onClick: () => void;
+}) {
+  const toneClass = {
+    green: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    amber: "border-amber-200 bg-amber-50 text-amber-700",
+    red: "border-red-200 bg-red-50 text-red-700",
+    neutral: "border-slate-200 bg-white text-slate-700"
+  }[tone];
+  return (
+    <button className="glass-panel group rounded-lg p-4 text-left transition hover:-translate-y-0.5 hover:border-blue-200" type="button" onClick={onClick}>
+      <div className="flex items-center justify-between gap-3">
+        <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border ${toneClass}`}>{icon}</span>
+        <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:text-blue-600" />
+      </div>
+      <div className="mt-3 text-sm font-medium text-slate-500">{label}</div>
+      <div className="mt-1 text-xl font-semibold text-slate-950">{value}</div>
+      <div className="mt-1 text-xs text-slate-500">{detail}</div>
+    </button>
   );
 }
 
@@ -278,18 +390,12 @@ function SegmentBar({ segments }: { segments: Array<{ status: string; width: num
   );
 }
 
-function MiniStat({ label, value, total }: { label: string; value: number; total: number }) {
-  const percent = total ? Math.round((value / total) * 100) : 0;
+function ResourceChip({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "green" | "red" }) {
+  const toneClass = tone === "green" ? "text-emerald-700" : tone === "red" ? "text-red-700" : "text-slate-800";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className="mt-2 flex items-end justify-between">
-        <div className="text-2xl font-semibold">{formatNumber(value)}</div>
-        <div className="text-sm text-slate-400">/ {formatNumber(total)}</div>
-      </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
-      </div>
+    <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+      <div className="text-[11px] text-slate-400">{label}</div>
+      <div className={`mt-0.5 truncate font-semibold ${toneClass}`}>{value}</div>
     </div>
   );
 }
@@ -333,6 +439,26 @@ function buildStoreProgress(stores: StoreRecord[], tasks: CategoryTaskRecord[]) 
       segments: rows.length
         ? rows.map((task) => ({ status: task.status, width: 100 / rows.length }))
         : [{ status: "pending", width: 100 }]
+    };
+  });
+}
+
+function buildWorkerPreview(workers: WorkerStatusRow[]) {
+  return workers.slice(0, 4).map((row) => {
+    const riskAccounts = row.accounts.filter((account) => account.status !== "safe" || account.riskLevel !== "normal");
+    const workingAccounts = row.accounts.filter((account) => account.currentStoreName || account.currentCategoryName);
+    const primaryWork = workingAccounts[0];
+    return {
+      workerId: row.worker.workerId,
+      machineLabel: row.worker.machineLabel,
+      status: row.worker.status,
+      networkMode: row.worker.networkMode,
+      accountCount: row.accounts.length,
+      riskAccountCount: riskAccounts.length,
+      cdpPorts: row.accounts.map((account) => account.cdpPort).filter(Boolean).join(", "),
+      currentWork: primaryWork
+        ? `${primaryWork.displayName || primaryWork.accountId} · ${primaryWork.currentStoreName || "未知门店"} / ${primaryWork.currentCategoryName || "未知类目"}`
+        : ""
     };
   });
 }
@@ -417,4 +543,10 @@ function formatTime(value: string) {
     minute: "2-digit",
     second: "2-digit"
   }).format(new Date(value));
+}
+
+function latestDate(values: string[]) {
+  const timestamps = values.map((value) => new Date(value || 0).getTime()).filter((value) => Number.isFinite(value) && value > 0);
+  if (!timestamps.length) return "";
+  return new Date(Math.max(...timestamps)).toISOString();
 }
