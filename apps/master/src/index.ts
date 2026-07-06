@@ -16,7 +16,8 @@ const app = await buildServer({
   db,
   redis,
   s3,
-  workerSharedToken: config.workerSharedToken
+  workerSharedToken: config.workerSharedToken,
+  dingtalkWebhookUrl: config.dingtalkWebhookUrl
 });
 
 await app.listen({ port: config.port, host: "0.0.0.0" });

@@ -19,6 +19,7 @@ export interface ServerDeps {
   redis: Redis;
   s3: Client;
   workerSharedToken: string;
+  dingtalkWebhookUrl?: string;
 }
 
 export async function buildServer(deps: ServerDeps) {
@@ -49,7 +50,7 @@ export async function buildServer(deps: ServerDeps) {
   registerWorkerGateway(app, deps);
   registerWorkerRoutes(app, deps.db);
   registerAccountRoutes(app, deps.db);
-  registerRiskEventRoutes(app, deps.db);
+  registerRiskEventRoutes(app, deps.db, deps.dingtalkWebhookUrl);
   registerTaskRoutes(app, deps.db);
   registerArtifactRoutes(app, deps.db, deps.s3);
 

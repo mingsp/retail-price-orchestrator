@@ -42,11 +42,13 @@
 - Verified artifact pipeline with a `raw_jsonl` metadata registration under `raw-artifacts/system-test/...`.
 - Added dashboard action buttons for account, profile, risk event, and task state transitions.
 - Verified account action API by changing `account-02` to `cooldown` and restoring it to `safe`.
+- Added DingTalk webhook notification adapter for risk events.
+- Verified notification path with a `login_required` test risk event and resolved it.
 
 ### Next
 
 1. Add task progress WebSocket events.
-2. Add human verification notification channel.
-3. Add worker command adapter that wraps the existing CDP collection scripts.
-4. Add export job model and business CSV generation.
-5. Add dashboard forms for creating stores/runs/tasks without API calls.
+2. Add worker command adapter that wraps the existing CDP collection scripts.
+3. Add export job model and business CSV generation.
+4. Add dashboard forms for creating stores/runs/tasks without API calls.
+5. Add worker deployment packaging for `mm`, `jl`, and `xf`.

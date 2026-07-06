@@ -1,6 +1,7 @@
 export interface MasterConfig {
   port: number;
   workerSharedToken: string;
+  dingtalkWebhookUrl?: string;
   databaseUrl: string;
   redisUrl: string;
   s3: {
@@ -16,6 +17,7 @@ export function loadConfig(): MasterConfig {
   return {
     port: Number(process.env.MASTER_PORT || 17890),
     workerSharedToken: process.env.WORKER_SHARED_TOKEN || "change-me",
+    dingtalkWebhookUrl: process.env.DINGTALK_WEBHOOK_URL || undefined,
     databaseUrl:
       process.env.DATABASE_URL ||
       "postgres://retail:retail@127.0.0.1:55432/retail_orchestrator",
@@ -29,4 +31,3 @@ export function loadConfig(): MasterConfig {
     }
   };
 }
-

@@ -66,6 +66,7 @@ Implemented:
 - worker WebSocket registration and heartbeat
 - account/profile/CDP identity registry
 - risk event API
+- DingTalk webhook notification adapter for risk events
 - store/run/category task API
 - concurrent-safe task claiming
 - MinIO presigned upload URL and artifact metadata registry

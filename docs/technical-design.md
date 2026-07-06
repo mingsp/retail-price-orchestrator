@@ -142,6 +142,8 @@ POST /api/risk-events
 PATCH /api/risk-events/:riskId/status
 ```
 
+Risk event creation also triggers the notification adapter when `DINGTALK_WEBHOOK_URL` is configured. Notification failures are logged and do not block event persistence.
+
 Task control plane:
 
 ```text

@@ -1,10 +1,11 @@
 import type { RiskEventPayload, RiskEventRecord } from "@retail-orchestrator/shared";
 import type { FastifyInstance } from "fastify";
 import type { Pool } from "pg";
+import { notifyRiskEvent } from "../notifications.js";
 import { insertRiskEvent, listRiskEvents, updateRiskEventStatus } from "../repositories/risk-events.js";
 import { broadcastDashboard } from "../ws/dashboard-gateway.js";
 
-export function registerRiskEventRoutes(app: FastifyInstance, db: Pool): void {
+export function registerRiskEventRoutes(app: FastifyInstance, db: Pool, dingtalkWebhookUrl?: string): void {
   app.get("/api/risk-events", async () => {
     return { riskEvents: await listRiskEvents(db) };
   });
@@ -16,6 +17,9 @@ export function registerRiskEventRoutes(app: FastifyInstance, db: Pool): void {
       event: request.body
     });
     broadcastDashboard({ type: "risk.created", sentAt: new Date().toISOString(), risk });
+    notifyRiskEvent(dingtalkWebhookUrl, risk).catch((error) => {
+      app.log.error({ error, riskId: risk.riskId }, "failed to send risk notification");
+    });
     return { risk };
   });
 

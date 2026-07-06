@@ -57,7 +57,7 @@
 - [x] Add task claim endpoint with account/profile eligibility checks.
 - [x] Add artifact upload metadata and MinIO object registration.
 - [x] Add dashboard actions for task/account/profile state transitions.
-- [ ] Add notification adapter for manual verification events.
+- [x] Add notification adapter for manual verification events.
 
 Verification:
 
@@ -67,3 +67,4 @@ Verification:
 - `/api/artifacts/presign` returned a MinIO presigned PUT URL.
 - `/api/artifacts` registered a `raw_jsonl` artifact metadata row.
 - Account action API changed `account-02` to `cooldown` and restored it to `safe`.
+- Risk notification path created a `login_required` event and resolved it; webhook delivery is skipped when `DINGTALK_WEBHOOK_URL` is unset.

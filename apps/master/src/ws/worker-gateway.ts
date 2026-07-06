@@ -9,6 +9,7 @@ import type { FastifyInstance } from "fastify";
 import type { Redis } from "ioredis";
 import type { Pool } from "pg";
 import type { WebSocket } from "ws";
+import { notifyRiskEvent } from "../notifications.js";
 import { insertRiskEvent } from "../repositories/risk-events.js";
 import { getWorker, upsertWorkerSnapshot } from "../repositories/workers.js";
 import { broadcastDashboard } from "./dashboard-gateway.js";
@@ -17,6 +18,7 @@ interface WorkerGatewayDeps {
   db: Pool;
   redis: Redis;
   workerSharedToken: string;
+  dingtalkWebhookUrl?: string;
 }
 
 export function registerWorkerGateway(app: FastifyInstance, deps: WorkerGatewayDeps): void {
@@ -48,6 +50,9 @@ export function registerWorkerGateway(app: FastifyInstance, deps: WorkerGatewayD
         if (message.type === "worker.risk_event") {
           const risk = await handleRiskEvent(deps, message);
           broadcastDashboard({ type: "risk.created", sentAt: new Date().toISOString(), risk });
+          notifyRiskEvent(deps.dingtalkWebhookUrl, risk).catch((error) => {
+            app.log.error({ error, riskId: risk.riskId }, "failed to send risk notification");
+          });
         }
       } catch (error) {
         app.log.error({ error }, "failed to handle worker websocket message");
