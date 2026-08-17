@@ -8,9 +8,9 @@
 
 1. 开发机完成最终测试、脱敏扫描和联合备份恢复。
 2. 只提交公开清单允许的源码，不提交 `.env`、运行数据、账号、IP、手机号、Profile 或原始业务数据。
-3. 推送固定 commit，并创建当前修复版本 `v0.2.1` tag。
+3. 推送固定 commit，并创建当前修复版本 `v0.2.2` tag。
 4. 记录 tag、commit、结构版本、构建时间和回滚版本。
-5. 66/201 分别运行 `deploy/windows/prepare-versioned-source.ps1`，克隆到 `sources/v0.2.1`。
+5. 66/201 分别运行 `deploy/windows/prepare-versioned-source.ps1`，克隆到 `sources/v0.2.2`。
 6. 脚本核对 tag 指向的 commit，并执行锁定依赖安装、交接测试、类型检查和公开源码安全校验。
 7. 两台机器只形成 `candidate_verified` 候选，不自动切换当前部署。
 8. 分别备份运行配置、PostgreSQL、MinIO、Worker identity、spool、checkpoint 和当前版本标识。

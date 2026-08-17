@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.2] - 2026-08-17
+
+### 交接兼容
+
+- 候选版本准备优先使用 Corepack；目标机没有 Corepack 时，可使用与项目 `packageManager` 完全一致的 pnpm。
+- pnpm 版本不一致会在安装前失败并隔离候选，防止不同机器生成不可复现的依赖树。
+
 ## [0.2.1] - 2026-08-17
 
 ### 交接修复

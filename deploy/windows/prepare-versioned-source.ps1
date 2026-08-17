@@ -19,8 +19,41 @@ function Resolve-RequiredCommand {
     throw "Required command was not found: $($Names -join ', ')"
 }
 
+function Resolve-OptionalCommand {
+    param([Parameter(Mandatory = $true)][string[]]$Names)
+
+    foreach ($name in $Names) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($command) { return $command.Source }
+    }
+    return $null
+}
+
+function Invoke-PinnedPnpm {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$RequiredVersion
+    )
+
+    if ($script:corepackCommand) {
+        & $script:corepackCommand pnpm @Arguments
+    }
+    else {
+        $actualVersion = (& $script:pnpmCommand --version).Trim()
+        if ($LASTEXITCODE -ne 0 -or $actualVersion -ne $RequiredVersion) {
+            throw "pnpm version mismatch: expected $RequiredVersion, got $actualVersion"
+        }
+        & $script:pnpmCommand @Arguments
+    }
+    if ($LASTEXITCODE -ne 0) { throw "pnpm command failed: $($Arguments -join ' ')" }
+}
+
 $gitCommand = Resolve-RequiredCommand -Names @('git.exe', 'git')
-$corepackCommand = Resolve-RequiredCommand -Names @('corepack.exe', 'corepack.cmd', 'corepack')
+$corepackCommand = Resolve-OptionalCommand -Names @('corepack.exe', 'corepack.cmd', 'corepack')
+$pnpmCommand = Resolve-OptionalCommand -Names @('pnpm.exe', 'pnpm.cmd', 'pnpm')
+if (-not $corepackCommand -and -not $pnpmCommand) {
+    throw 'Required package manager was not found: Corepack or pnpm'
+}
 
 $sourcesRoot = Join-Path $InstallRoot 'sources'
 $safeTag = $Tag -replace '[^A-Za-z0-9._-]', '_'
@@ -42,14 +75,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Detached checkout failed' }
     Push-Location $staging
     try {
-        & $corepackCommand pnpm install --frozen-lockfile
-        if ($LASTEXITCODE -ne 0) { throw 'Frozen dependency install failed' }
-        & $corepackCommand pnpm handoff:test
-        if ($LASTEXITCODE -ne 0) { throw 'Handoff tests failed' }
-        & $corepackCommand pnpm typecheck
-        if ($LASTEXITCODE -ne 0) { throw 'Typecheck failed' }
-        & $corepackCommand pnpm public:verify
-        if ($LASTEXITCODE -ne 0) { throw 'Public-source safety verification failed' }
+        $packageMetadata = Get-Content -LiteralPath (Join-Path $staging 'package.json') -Raw | ConvertFrom-Json
+        $requiredPnpmVersion = ([string]$packageMetadata.packageManager) -replace '^pnpm@', ''
+        if (-not $requiredPnpmVersion) { throw 'packageManager must pin an exact pnpm version' }
+        Invoke-PinnedPnpm -Arguments @('install', '--frozen-lockfile') -RequiredVersion $requiredPnpmVersion
+        Invoke-PinnedPnpm -Arguments @('handoff:test') -RequiredVersion $requiredPnpmVersion
+        Invoke-PinnedPnpm -Arguments @('typecheck') -RequiredVersion $requiredPnpmVersion
+        Invoke-PinnedPnpm -Arguments @('public:verify') -RequiredVersion $requiredPnpmVersion
     }
     finally { Pop-Location }
 
