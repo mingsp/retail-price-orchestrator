@@ -12,6 +12,9 @@ const masterInstallEntryUrl = new URL("../windows/invoke-master-worker-install.p
 const workerUpgradeUrl = new URL("../windows/upgrade-worker.ps1", import.meta.url);
 const workerReleaseAccessUrl = new URL("../windows/test-worker-release-access.ps1", import.meta.url);
 const workerResourcePolicyUrl = new URL("../windows/configure-worker-resource-policy.ps1", import.meta.url);
+const standaloneLauncherUrl = new URL("../windows/start-standalone-node.ps1", import.meta.url);
+const standaloneActivationUrl = new URL("../windows/activate-standalone-candidate.ps1", import.meta.url);
+const masterBackupUrl = new URL("../windows/backup-master.ps1", import.meta.url);
 
 test("Windows installer registers the interactive CDP helper with the resolved Windows identity", async () => {
   const installer = await readFile(installerUrl, "utf8");
@@ -147,4 +150,34 @@ test("Worker resource policy is bounded, backed up, and rolls back failed restar
   assert.match(source, /Copy-Item -LiteralPath \$backup -Destination \$EnvironmentFile -Force/);
   assert.match(source, /worker_runtime_restart_failed/);
   assert.doesNotMatch(source, /(password|access_token)\s*=/i);
+});
+
+test("Standalone startup uses the repository-pinned Node runtime", async () => {
+  const source = await readFile(standaloneLauncherUrl, "utf8");
+
+  assert.match(source, /\.node-version/);
+  assert.match(source, /tools\\node-v\$requiredNodeVersion-win-x64/);
+  assert.match(source, /\$corepackPath pnpm deploy:validate/);
+  assert.match(source, /\$env:CI = 'true'/);
+  assert.doesNotMatch(source, /& corepack pnpm/);
+});
+
+test("Standalone activation switches startup only after health and version verification", async () => {
+  const source = await readFile(standaloneActivationUrl, "utf8");
+  const versionCheckIndex = source.indexOf("Get-VersionDocument");
+  const taskSwitchIndex = source.indexOf("Set-ScheduledTask");
+
+  assert.match(source, /candidate-verification\.json/);
+  assert.match(source, /standalone\.env\.production/);
+  assert.match(source, /Activated API identity mismatch/);
+  assert.match(source, /Copy-Item -LiteralPath \$environmentBackup -Destination \$environmentPath -Force/);
+  assert.match(source, /Start-ScheduledTask -TaskName \$StartupTaskName/);
+  assert.ok(versionCheckIndex >= 0 && taskSwitchIndex > versionCheckIndex);
+  assert.doesNotMatch(source, /(password|access_token)\s*=/i);
+});
+
+test("Master backup includes the protected standalone environment", async () => {
+  const source = await readFile(masterBackupUrl, "utf8");
+  assert.match(source, /config\\\.env\.production/);
+  assert.match(source, /standalone\.env\.production/);
 });

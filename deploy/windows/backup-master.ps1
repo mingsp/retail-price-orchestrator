@@ -82,6 +82,7 @@ finally {
 }
 
 $copySpecs = @(
+    @{ Source = (Join-Path $InstallRoot 'config\.env.production'); Name = 'standalone.env.production' },
     @{ Source = (Join-Path $InstallRoot 'config\production-deploy.env'); Name = 'production-deploy.env' },
     @{ Source = (Join-Path $InstallRoot 'app\.env.production'); Name = 'legacy-app.env.production' },
     @{ Source = (Join-Path $InstallRoot 'app\infra\docker-compose.production.yml'); Name = 'legacy-app-docker-compose.production.yml' },

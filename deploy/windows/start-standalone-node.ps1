@@ -3,7 +3,8 @@ param(
     [string]$ProjectRoot = 'C:\SpanAI\retail-radar-xcgjz',
     [string]$StateRoot = 'C:\ProgramData\RetailRadar\Standalone',
     [int]$DockerTimeoutSeconds = 300,
-    [int]$ReadyTimeoutSeconds = 300
+    [int]$ReadyTimeoutSeconds = 300,
+    [switch]$EnableObservability
 )
 
 Set-StrictMode -Version Latest
@@ -17,10 +18,26 @@ $certificatePath = Join-Path $state 'certificates\master-root.crt'
 $logPath = Join-Path $state 'logs\standalone-start.log'
 $dockerConfigPath = Join-Path $state 'docker-config'
 $dockerPath = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
+$nodeVersionPath = Join-Path $project '.node-version'
 
-foreach ($required in @($environmentPath, $composePath, $dockerPath)) {
+foreach ($required in @($environmentPath, $composePath, $dockerPath, $nodeVersionPath)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required file is missing: $required" }
 }
+
+$requiredNodeVersion = (Get-Content -LiteralPath $nodeVersionPath -Raw).Trim()
+if ($requiredNodeVersion -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid pinned Node.js version: $requiredNodeVersion" }
+$toolRoot = Join-Path $state "tools\node-v$requiredNodeVersion-win-x64"
+$nodePath = Join-Path $toolRoot 'node.exe'
+$corepackPath = Join-Path $toolRoot 'corepack.cmd'
+foreach ($required in @($nodePath, $corepackPath)) {
+    if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Pinned runtime is missing: $required" }
+}
+$actualNodeVersion = (& $nodePath --version).Trim().TrimStart('v')
+if ($LASTEXITCODE -ne 0 -or $actualNodeVersion -ne $requiredNodeVersion) {
+    throw "Node.js version mismatch: expected $requiredNodeVersion, got $actualNodeVersion"
+}
+$env:PATH = "$toolRoot;$env:PATH"
+$env:CI = 'true'
 
 New-Item -ItemType Directory -Force -Path $dockerConfigPath | Out-Null
 $dockerConfigFile = Join-Path $dockerConfigPath 'config.json'
@@ -53,6 +70,7 @@ function Invoke-Docker {
 }
 
 Write-Trace 'start'
+Write-Trace "runtime node=$actualNodeVersion observability=$($EnableObservability.IsPresent)"
 $deadline = (Get-Date).AddSeconds($DockerTimeoutSeconds)
 $engineVersion = $null
 do {
@@ -71,14 +89,16 @@ try {
     $previousPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        & corepack pnpm deploy:validate *> $null
+        & $corepackPath pnpm deploy:validate *> $null
         $validationExitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousPreference
     }
     if ($validationExitCode -ne 0) { throw 'Production deployment validation failed' }
-    Invoke-Docker compose --env-file $environmentPath -f $composePath config --quiet | Out-Null
-    Invoke-Docker compose --env-file $environmentPath -f $composePath up --detach --build | ForEach-Object { Write-Trace $_.ToString() }
+    $composeBase = @('compose', '--env-file', $environmentPath, '-f', $composePath)
+    if ($EnableObservability) { $composeBase += @('--profile', 'observability') }
+    Invoke-Docker @composeBase config --quiet | Out-Null
+    Invoke-Docker @composeBase up --detach --build | ForEach-Object { Write-Trace $_.ToString() }
 } finally {
     Pop-Location
 }
@@ -113,6 +133,8 @@ Write-Trace 'ready'
     status = 'ready'
     engineVersion = $engineVersion
     masterUrl = 'https://127.0.0.1:2808'
+    nodeVersion = $actualNodeVersion
+    observability = $EnableObservability.IsPresent
     environmentFile = $environmentPath
     certificate = $certificatePath
 } | ConvertTo-Json -Compress
