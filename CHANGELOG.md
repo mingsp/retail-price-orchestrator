@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.1] - 2026-08-17
+
+### 交接修复
+
+- Windows 候选版本准备脚本可解析 `corepack.exe`、`corepack.cmd` 或 PATH 中的 Corepack，不再假设远程非交互会话一定存在 `corepack.exe`。
+- 固定 Tag/Commit、冻结依赖、交接测试、类型检查和公开安全校验门禁保持不变，失败候选仍进入隔离目录且不切换生产服务。
+
 ## [0.2.0] - 2026-08-17
 
 ### 生产加固

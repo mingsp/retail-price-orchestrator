@@ -6,6 +6,9 @@ const source = await readFile(new URL("../windows/prepare-versioned-source.ps1",
 
 test("source handoff is pinned, verified, and never switches the running deployment", () => {
   assert.match(source, /ExpectedCommit/);
+  assert.match(source, /Resolve-RequiredCommand/);
+  assert.match(source, /'corepack\.exe', 'corepack\.cmd', 'corepack'/);
+  assert.doesNotMatch(source, /corepack\.exe enable/);
   assert.match(source, /rev-list -n 1/);
   assert.match(source, /install --frozen-lockfile/);
   assert.match(source, /pnpm handoff:test/);

@@ -9,6 +9,19 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Resolve-RequiredCommand {
+    param([Parameter(Mandatory = $true)][string[]]$Names)
+
+    foreach ($name in $Names) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($command) { return $command.Source }
+    }
+    throw "Required command was not found: $($Names -join ', ')"
+}
+
+$gitCommand = Resolve-RequiredCommand -Names @('git.exe', 'git')
+$corepackCommand = Resolve-RequiredCommand -Names @('corepack.exe', 'corepack.cmd', 'corepack')
+
 $sourcesRoot = Join-Path $InstallRoot 'sources'
 $safeTag = $Tag -replace '[^A-Za-z0-9._-]', '_'
 $destination = Join-Path $sourcesRoot $safeTag
@@ -17,27 +30,25 @@ if (Test-Path -LiteralPath $destination) { throw "Versioned source already exist
 New-Item -ItemType Directory -Force -Path $sourcesRoot | Out-Null
 
 try {
-    & git.exe clone --filter=blob:none --no-checkout $RepositoryUrl $staging
+    & $gitCommand clone --filter=blob:none --no-checkout $RepositoryUrl $staging
     if ($LASTEXITCODE -ne 0) { throw 'Git clone failed' }
-    & git.exe -C $staging fetch --force origin "refs/tags/${Tag}:refs/tags/${Tag}"
+    & $gitCommand -C $staging fetch --force origin "refs/tags/${Tag}:refs/tags/${Tag}"
     if ($LASTEXITCODE -ne 0) { throw "Tag fetch failed: $Tag" }
-    $actualCommit = (& git.exe -C $staging rev-list -n 1 $Tag).Trim().ToLowerInvariant()
+    $actualCommit = (& $gitCommand -C $staging rev-list -n 1 $Tag).Trim().ToLowerInvariant()
     if ($LASTEXITCODE -ne 0 -or $actualCommit -ne $ExpectedCommit.ToLowerInvariant()) {
         throw "Tag commit mismatch: expected $ExpectedCommit, got $actualCommit"
     }
-    & git.exe -C $staging checkout --detach $Tag
+    & $gitCommand -C $staging checkout --detach $Tag
     if ($LASTEXITCODE -ne 0) { throw 'Detached checkout failed' }
     Push-Location $staging
     try {
-        & corepack.exe enable
-        if ($LASTEXITCODE -ne 0) { throw 'Corepack enable failed' }
-        & corepack.exe pnpm install --frozen-lockfile
+        & $corepackCommand pnpm install --frozen-lockfile
         if ($LASTEXITCODE -ne 0) { throw 'Frozen dependency install failed' }
-        & corepack.exe pnpm handoff:test
+        & $corepackCommand pnpm handoff:test
         if ($LASTEXITCODE -ne 0) { throw 'Handoff tests failed' }
-        & corepack.exe pnpm typecheck
+        & $corepackCommand pnpm typecheck
         if ($LASTEXITCODE -ne 0) { throw 'Typecheck failed' }
-        & corepack.exe pnpm public:verify
+        & $corepackCommand pnpm public:verify
         if ($LASTEXITCODE -ne 0) { throw 'Public-source safety verification failed' }
     }
     finally { Pop-Location }
