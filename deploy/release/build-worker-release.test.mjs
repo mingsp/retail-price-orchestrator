@@ -37,6 +37,7 @@ test("worker release builder creates installable artifacts without runtime profi
   try {
     const result = await run(process.execPath, [
       "deploy/release/build-worker-release.mjs",
+      "--",
       "--version",
       version,
       "--output",

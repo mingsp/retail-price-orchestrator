@@ -55,11 +55,16 @@ function run(command, commandArgs) {
 
 function parseArgs(values) {
   const parsed = {};
-  for (let index = 0; index < values.length; index += 2) {
+  for (let index = 0; index < values.length;) {
     const key = values[index];
+    if (key === "--") {
+      index += 1;
+      continue;
+    }
     const value = values[index + 1];
     if (!key?.startsWith("--") || !value) fail(`Invalid argument near ${key || "end"}`);
     parsed[key.slice(2)] = value;
+    index += 2;
   }
   return parsed;
 }

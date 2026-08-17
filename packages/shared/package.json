@@ -1,6 +1,6 @@
 {
   "name": "@retail-orchestrator/shared",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
