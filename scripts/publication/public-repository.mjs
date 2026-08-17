@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import {
   copyFileSafe,
-  listFilesRecursive,
+  listDeployedSourceFiles,
   listSourceFiles,
   normalizeRelativePath,
   shouldIncludeSourcePath
@@ -181,7 +181,7 @@ async function listPublicCandidateFiles(root) {
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
-  return listFilesRecursive(root);
+  return listDeployedSourceFiles(root);
 }
 
 export function shouldIncludePublicPath(value, manifest = {}) {

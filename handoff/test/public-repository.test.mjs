@@ -61,6 +61,17 @@ test("public repository verifier accepts placeholders and deidentified documenta
   assert.equal(result.redaction.findingCount, 0);
 });
 
+test("public repository verifier ignores installed dependencies in unpacked snapshots", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "retail-public-installed-"));
+  await write(path.join(root, "README.md"), "public source\n");
+  await write(path.join(root, "node_modules", "dependency", "fixture.js"), "password=third-party-fixture\n");
+
+  const result = await verifyPublicRepository(root);
+
+  assert.equal(result.status, "pass");
+  assert.equal(result.redaction.findingCount, 0);
+});
+
 test("public repository verifier allows only explicit canonical fixtures in exact test files", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "retail-public-fixtures-"));
   await write(

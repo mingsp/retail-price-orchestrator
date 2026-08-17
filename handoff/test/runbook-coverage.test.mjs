@@ -5,6 +5,9 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const privateOperationsAvailable = await fs.access(
+  path.join(repoRoot, "docs", "operations", "66-final-handoff.md")
+).then(() => true, () => false);
 
 test("handoff runbook covers account risk, profile replacement, login, and recovery", async () => {
   const runbook = await fs.readFile(
@@ -154,7 +157,9 @@ test("private account contact map is placeholder-only", async () => {
   assert.doesNotThrow(() => JSON.parse(contactMap));
 });
 
-test("66 standalone handoff includes final facts, decision index, and sanitized prompt history", async () => {
+test("66 standalone handoff includes final facts, decision index, and sanitized prompt history", {
+  skip: privateOperationsAvailable ? false : "private operations documents are intentionally absent"
+}, async () => {
   const finalHandoff = await fs.readFile(
     path.join(repoRoot, "docs", "operations", "66-final-handoff.md"),
     "utf8"
@@ -184,7 +189,9 @@ test("66 standalone handoff includes final facts, decision index, and sanitized 
   assert.doesNotMatch(promptArchive, /access_token=[A-Za-z0-9_-]{16,}/i);
 });
 
-test("66 single-store execution handoff preserves collection truth and safe recovery boundaries", async () => {
+test("66 single-store execution handoff preserves collection truth and safe recovery boundaries", {
+  skip: privateOperationsAvailable ? false : "private operations documents are intentionally absent"
+}, async () => {
   const executionHandoff = await fs.readFile(
     path.join(repoRoot, "docs", "operations", "66-xcgjz-single-store-execution-handoff.md"),
     "utf8"
