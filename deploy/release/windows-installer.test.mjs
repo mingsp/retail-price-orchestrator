@@ -160,6 +160,8 @@ test("Standalone startup uses the repository-pinned Node runtime", async () => {
   assert.match(source, /tools\\node-v\$requiredNodeVersion-win-x64/);
   assert.match(source, /\$corepackPath pnpm deploy:validate/);
   assert.match(source, /\$env:CI = 'true'/);
+  assert.match(source, /--resolve \$localResolve "\$\{localMasterUrl\}\/ready"/);
+  assert.doesNotMatch(source, /https:\/\/127\.0\.0\.1:2808\/ready/);
   assert.doesNotMatch(source, /& corepack pnpm/);
 });
 
@@ -172,6 +174,9 @@ test("Standalone activation switches startup only after health and version verif
   assert.match(source, /candidate-verification\.json/);
   assert.match(source, /standalone\.env\.production/);
   assert.match(source, /Activated API identity mismatch/);
+  assert.match(source, /Get-VersionDocument -MasterHostname \$masterHostname/);
+  assert.match(source, /--resolve "\$\{MasterHostname\}:2808:127\.0\.0\.1"/);
+  assert.doesNotMatch(source, /https:\/\/127\.0\.0\.1:2808\/api\/version/);
   assert.match(observabilityInvocation, /-ProductionEnvPath \$environmentPath -OutputConfigPath \$alertmanagerConfigPath/);
   assert.doesNotMatch(observabilityInvocation, /-ProjectRoot|-StateRoot/);
   assert.match(source, /Copy-Item -LiteralPath \$environmentBackup -Destination \$environmentPath -Force/);

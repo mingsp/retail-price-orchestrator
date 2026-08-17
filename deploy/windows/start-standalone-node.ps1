@@ -24,6 +24,12 @@ foreach ($required in @($environmentPath, $composePath, $dockerPath, $nodeVersio
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required file is missing: $required" }
 }
 
+$masterHostnameLine = Get-Content -LiteralPath $environmentPath -Encoding UTF8 | Where-Object { $_ -match '^MASTER_HOSTNAME=' } | Select-Object -First 1
+$masterHostname = if ($masterHostnameLine) { $masterHostnameLine.Substring('MASTER_HOSTNAME='.Length).Trim() } else { '' }
+if ($masterHostname -notmatch '^[A-Za-z0-9.-]+$') { throw 'MASTER_HOSTNAME is missing or invalid' }
+$localMasterUrl = "https://${masterHostname}:2808"
+$localResolve = "${masterHostname}:2808:127.0.0.1"
+
 $requiredNodeVersion = (Get-Content -LiteralPath $nodeVersionPath -Raw).Trim()
 if ($requiredNodeVersion -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid pinned Node.js version: $requiredNodeVersion" }
 $toolRoot = Join-Path $state "tools\node-v$requiredNodeVersion-win-x64"
@@ -107,7 +113,7 @@ $readyDeadline = (Get-Date).AddSeconds($ReadyTimeoutSeconds)
 $ready = $false
 do {
     Start-Sleep -Seconds 5
-    & curl.exe --silent --show-error --fail --insecure 'https://127.0.0.1:2808/ready' *> $null
+    & curl.exe --silent --show-error --fail --insecure --resolve $localResolve "${localMasterUrl}/ready" *> $null
     $ready = $LASTEXITCODE -eq 0
 } while (-not $ready -and (Get-Date) -lt $readyDeadline)
 if (-not $ready) { throw 'Master readiness endpoint did not become healthy before timeout' }
@@ -132,7 +138,7 @@ Write-Trace 'ready'
 [pscustomobject]@{
     status = 'ready'
     engineVersion = $engineVersion
-    masterUrl = 'https://127.0.0.1:2808'
+    masterUrl = $localMasterUrl
     nodeVersion = $actualNodeVersion
     observability = $EnableObservability.IsPresent
     environmentFile = $environmentPath

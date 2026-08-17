@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.10] - 2026-08-17
+
+### 真实健康探针
+
+- 独立节点本地健康检查与版本核验使用生产 `MASTER_HOSTNAME` 作为 Host/SNI，并通过 `--resolve` 固定回环地址。
+- 拒绝将 Caddy 未匹配站点返回的 200 空响应误判为 Master 健康，候选切换必须读到真实版本身份。
+
 ## [0.2.9] - 2026-08-17
 
 ### Windows 可审计发布

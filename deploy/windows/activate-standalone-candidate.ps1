@@ -34,7 +34,9 @@ function Set-EnvironmentValue {
 }
 
 function Get-VersionDocument {
-    $output = & curl.exe --silent --show-error --fail --insecure 'https://127.0.0.1:2808/api/version'
+    param([Parameter(Mandatory = $true)][string]$MasterHostname)
+    $output = & curl.exe --silent --show-error --fail --insecure `
+        --resolve "${MasterHostname}:2808:127.0.0.1" "https://${MasterHostname}:2808/api/version"
     if ($LASTEXITCODE -ne 0) { throw 'Version endpoint is unavailable after activation' }
     try { return ($output | ConvertFrom-Json) } catch { throw 'Version endpoint returned invalid JSON' }
 }
@@ -50,6 +52,9 @@ $alertmanagerConfigPath = Join-Path $state 'config\alertmanager.generated.yml'
 foreach ($required in @($environmentPath, $verificationPath, $packagePath, $startScript)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required activation input is missing: $required" }
 }
+$masterHostnameLine = Get-Content -LiteralPath $environmentPath -Encoding UTF8 | Where-Object { $_ -match '^MASTER_HOSTNAME=' } | Select-Object -First 1
+$masterHostname = if ($masterHostnameLine) { $masterHostnameLine.Substring('MASTER_HOSTNAME='.Length).Trim() } else { '' }
+if ($masterHostname -notmatch '^[A-Za-z0-9.-]+$') { throw 'MASTER_HOSTNAME is missing or invalid' }
 
 $verification = Get-Content -LiteralPath $verificationPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $package = Get-Content -LiteralPath $packagePath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -94,7 +99,7 @@ try {
     & powershell.exe @startArguments
     if ($LASTEXITCODE -ne 0) { throw 'Candidate startup failed' }
 
-    $versionDocument = Get-VersionDocument
+    $versionDocument = Get-VersionDocument -MasterHostname $masterHostname
     $reportedVersion = if ($versionDocument.version) { [string]$versionDocument.version } else { [string]$versionDocument.release.version }
     $reportedCommit = if ($versionDocument.gitSha) { [string]$versionDocument.gitSha } else { [string]$versionDocument.release.gitSha }
     if ($reportedVersion -ne $normalizedVersion -or $reportedCommit -ne $ExpectedCommit) {
