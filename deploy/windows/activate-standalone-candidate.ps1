@@ -46,6 +46,7 @@ $verificationPath = Join-Path $project 'candidate-verification.json'
 $packagePath = Join-Path $project 'package.json'
 $startScript = Join-Path $project 'deploy\windows\start-standalone-node.ps1'
 $observabilityScript = Join-Path $project 'deploy\windows\configure-observability.ps1'
+$alertmanagerConfigPath = Join-Path $state 'config\alertmanager.generated.yml'
 foreach ($required in @($environmentPath, $verificationPath, $packagePath, $startScript)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required activation input is missing: $required" }
 }
@@ -76,7 +77,8 @@ if ($task) { Export-ScheduledTask -TaskName $StartupTaskName | Set-Content -Lite
 try {
     if ($EnableObservability) {
         if (-not (Test-Path -LiteralPath $observabilityScript -PathType Leaf)) { throw 'Observability configuration script is missing' }
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $observabilityScript -ProjectRoot $project -StateRoot $state
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $observabilityScript `
+            -ProductionEnvPath $environmentPath -OutputConfigPath $alertmanagerConfigPath
         if ($LASTEXITCODE -ne 0) { throw 'Observability configuration failed' }
     }
 

@@ -166,10 +166,13 @@ test("Standalone activation switches startup only after health and version verif
   const source = await readFile(standaloneActivationUrl, "utf8");
   const versionCheckIndex = source.indexOf("Get-VersionDocument");
   const taskSwitchIndex = source.indexOf("Set-ScheduledTask");
+  const observabilityInvocation = source.match(/& powershell\.exe[^\r\n]*\$observabilityScript `\r?\n\s*[^\r\n]+/)?.[0] ?? "";
 
   assert.match(source, /candidate-verification\.json/);
   assert.match(source, /standalone\.env\.production/);
   assert.match(source, /Activated API identity mismatch/);
+  assert.match(observabilityInvocation, /-ProductionEnvPath \$environmentPath -OutputConfigPath \$alertmanagerConfigPath/);
+  assert.doesNotMatch(observabilityInvocation, /-ProjectRoot|-StateRoot/);
   assert.match(source, /Copy-Item -LiteralPath \$environmentBackup -Destination \$environmentPath -Force/);
   assert.match(source, /Start-ScheduledTask -TaskName \$StartupTaskName/);
   assert.ok(versionCheckIndex >= 0 && taskSwitchIndex > versionCheckIndex);
