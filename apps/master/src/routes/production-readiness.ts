@@ -10,7 +10,8 @@ export function registerProductionReadinessRoutes(
   app: FastifyInstance,
   db: Pool,
   workerSharedToken: string,
-  dingtalkNotificationConfigured: boolean
+  dingtalkNotificationConfigured: boolean,
+  monitoringAlertConfigured: boolean
 ): void {
   app.get<{
     Querystring: {
@@ -44,6 +45,7 @@ export function registerProductionReadinessRoutes(
         notificationDeadLetterCount: Number(evidence.rows[0]?.notification_dead_letters || 0),
         workerSharedTokenIsDefault: !workerSharedToken || workerSharedToken === "change-me",
         dingtalkNotificationConfigured,
+        monitoringAlertConfigured,
         options: {
           expectedWorkerIds: parseCsv(request.query.expectedWorkerIds),
           expectedAccountCount: parseOptionalInt(request.query.expectedAccountCount),

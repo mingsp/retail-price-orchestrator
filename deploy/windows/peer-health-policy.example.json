@@ -1,0 +1,8 @@
+{
+  "peerName": "另一台调度设备",
+  "healthUrl": "https://192.0.2.10:2808/health",
+  "caCertificatePath": "C:\\ProgramData\\RetailRadar\\certificates\\master-root.crt",
+  "environmentFile": "C:\\ProgramData\\RetailRadar\\config\\production.env",
+  "statePath": "C:\\ProgramData\\RetailRadar\\state\\peer-health.json",
+  "failureThreshold": 2
+}

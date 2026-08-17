@@ -31,6 +31,7 @@ import { registerAutomationRoutes } from "./routes/automation.js";
 import { registerRegistrySyncRoutes } from "./routes/registry-sync.js";
 import { registerScopeManifestRoutes } from "./routes/scope-manifests.js";
 import { registerVersionRoutes } from "./routes/version.js";
+import { registerMonitoringAlertRoutes } from "./routes/monitoring-alerts.js";
 import { readReleaseInfo } from "./release-info.js";
 import { addBusinessClient, addDashboardClient, broadcastDashboard, getDashboardGatewayMetrics, startDashboardGatewayHeartbeat } from "./ws/dashboard-gateway.js";
 import { getActiveWorkerSocketCount, registerWorkerGateway } from "./ws/worker-gateway.js";
@@ -59,6 +60,7 @@ export interface ServerDeps {
   allowLegacyWorkerSharedToken: boolean;
   automationToken?: string;
   operatorToken?: string;
+  monitoringAlertToken?: string;
   registrySyncToken?: string;
   registrySchemaHash?: string;
   operatorAllowedOrigins?: string[];
@@ -91,6 +93,7 @@ export async function buildServer(deps: ServerDeps) {
 
   app.get("/health", async () => ({ ok: true, ...readReleaseInfo() }));
   registerVersionRoutes(app);
+  registerMonitoringAlertRoutes(app, deps.db, deps.monitoringAlertToken);
 
   app.get("/ready", async (_request, reply) => {
     const dependencies = await Promise.all([
@@ -156,7 +159,13 @@ export async function buildServer(deps: ServerDeps) {
   registerQualityRoutes(app, deps.db, dashboardEvents);
   registerProductRoutes(app, deps.db);
   registerRetailMartSyncRoutes(app, deps.db, deps.s3, deps.retailMart);
-  registerProductionReadinessRoutes(app, deps.db, deps.workerSharedToken, Boolean(deps.dingtalkWebhookUrl));
+  registerProductionReadinessRoutes(
+    app,
+    deps.db,
+    deps.workerSharedToken,
+    Boolean(deps.dingtalkWebhookUrl),
+    Boolean(deps.monitoringAlertToken)
+  );
   registerOperationEventRoutes(app, deps.db);
   registerBusinessRoutes(app, deps.db);
   registerDeliveryRoutes(app, deps.db, deps.s3, deps.s3Public || deps.s3);

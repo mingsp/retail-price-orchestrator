@@ -40,6 +40,7 @@ const app = await buildServer({
   allowLegacyWorkerSharedToken: config.allowLegacyWorkerSharedToken,
   automationToken: config.automationToken,
   operatorToken: config.operatorToken,
+  monitoringAlertToken: config.monitoringAlertToken,
   registrySyncToken: config.registrySyncToken,
   registrySchemaHash: config.registrySchemaHash,
   operatorAllowedOrigins: config.operatorAllowedOrigins,

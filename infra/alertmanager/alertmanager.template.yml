@@ -1,0 +1,19 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: retail-radar-master
+  group_by: [alertname, worker_id, store_name]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: retail-radar-master
+    webhook_configs:
+      - url: http://master:17890/internal/monitoring/alerts
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: __MONITORING_ALERT_TOKEN__

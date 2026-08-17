@@ -3,6 +3,7 @@ dist/
 .env
 .env.*
 !.env.example
+infra/alertmanager/alertmanager.generated.yml
 .superpowers/
 data/
 artifacts/

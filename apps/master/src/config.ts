@@ -5,6 +5,7 @@ export interface MasterConfig {
   allowLegacyWorkerSharedToken: boolean;
   automationToken?: string;
   operatorToken?: string;
+  monitoringAlertToken?: string;
   registrySyncToken?: string;
   registrySchemaHash?: string;
   operatorAllowedOrigins: string[];
@@ -58,6 +59,7 @@ export function loadConfig(): MasterConfig {
     allowLegacyWorkerSharedToken: process.env.ALLOW_LEGACY_WORKER_SHARED_TOKEN === "true",
     automationToken: process.env.AUTOMATION_TOKEN || undefined,
     operatorToken: process.env.OPERATOR_TOKEN || undefined,
+    monitoringAlertToken: process.env.MONITORING_ALERT_TOKEN || undefined,
     registrySyncToken: process.env.REGISTRY_SYNC_TOKEN || undefined,
     registrySchemaHash: process.env.REGISTRY_SCHEMA_HASH || undefined,
     operatorAllowedOrigins: parseAllowedOrigins(process.env.OPERATOR_ALLOWED_ORIGINS, masterPublicBaseUrl),

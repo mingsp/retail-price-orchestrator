@@ -1,6 +1,6 @@
 {
   "name": "@retail-orchestrator/dashboard",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 2808",

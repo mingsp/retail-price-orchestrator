@@ -1,0 +1,10 @@
+{
+  "installRoot": "D:\\SpanAI\\retail-radar-master",
+  "projectName": "retail-radar",
+  "masterUrl": "https://127.0.0.1:2808",
+  "localBackupRoot": "D:\\SpanAI\\retail-radar-master\\backups",
+  "offHostDestinationRoot": "",
+  "requireOffHostCopy": true,
+  "retentionDays": 14,
+  "minimumCopies": 2
+}

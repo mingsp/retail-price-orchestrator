@@ -111,6 +111,21 @@ test("production readiness blocks collection when DingTalk intervention notifica
   assert.ok(report.issues.some((item) => item.id === "system:dingtalk-notification-missing"));
 });
 
+test("production readiness blocks collection when monitoring alerts are not configured", () => {
+  const report = buildProductionReadinessReport({
+    workers: [makeWorker()],
+    stores: [],
+    runs: [],
+    tasks: [],
+    risks: [],
+    monitoringAlertConfigured: false,
+    now: new Date("2026-07-09T10:00:00.000Z")
+  });
+
+  assert.equal(report.status, "blocked");
+  assert.ok(report.issues.some((item) => item.id === "system:monitoring-alert-missing"));
+});
+
 test("production readiness blocks debug workers and placeholder login markers", () => {
   const report = buildProductionReadinessReport({
     workers: [

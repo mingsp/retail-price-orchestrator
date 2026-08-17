@@ -40,7 +40,11 @@ export function registerObservability(app: FastifyInstance, db: Pool, runtime?: 
         (SELECT count(*) FROM notification_outbox WHERE status = 'dead_letter')::int AS notification_dead_letters,
         (SELECT count(*) FROM notification_outbox WHERE status = 'outcome_unknown')::int AS notification_outcome_unknown,
         (SELECT count(*) FROM artifacts WHERE checksum_sha256 IS NULL OR storage_version_id IS NULL)::int AS invalid_artifacts,
-        (SELECT COALESCE(EXTRACT(EPOCH FROM (now() - min(last_seen_at))), 0) FROM workers)::bigint AS oldest_worker_heartbeat_seconds,
+        (SELECT count(DISTINCT worker.worker_id)
+         FROM workers worker
+         JOIN category_tasks task ON task.assigned_worker_id = worker.worker_id
+         WHERE task.status IN ('assigned','running','collecting','captured','uploading','structuring','validating')
+           AND worker.last_seen_at <= now() - interval '120 seconds')::int AS stale_active_workers,
         (SELECT count(*) FROM store_runs WHERE status NOT IN ('completed','completed_with_review','failed') AND scope_manifest_id IS NULL)::int AS active_runs_without_scope
     `);
     const row = result.rows[0];
@@ -58,7 +62,7 @@ export function registerObservability(app: FastifyInstance, db: Pool, runtime?: 
       ["retail_orchestrator_notification_dead_letters", row.notification_dead_letters],
       ["retail_orchestrator_notification_outcome_unknown", row.notification_outcome_unknown],
       ["retail_orchestrator_invalid_artifacts", row.invalid_artifacts],
-      ["retail_orchestrator_oldest_worker_heartbeat_seconds", row.oldest_worker_heartbeat_seconds],
+      ["retail_orchestrator_stale_active_workers", row.stale_active_workers],
       ["retail_orchestrator_active_runs_without_scope", row.active_runs_without_scope],
       ["retail_orchestrator_http_requests_total", httpRequests],
       ["retail_orchestrator_http_errors_total", httpErrors],

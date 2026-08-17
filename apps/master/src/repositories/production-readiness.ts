@@ -28,6 +28,7 @@ export interface ReadinessInput {
   options?: ReadinessOptions;
   workerSharedTokenIsDefault?: boolean;
   dingtalkNotificationConfigured?: boolean;
+  monitoringAlertConfigured?: boolean;
   now?: Date;
 }
 
@@ -68,6 +69,17 @@ export function buildProductionReadinessReport(input: ReadinessInput): Productio
       "人工处理通知尚未配置",
       "验证码、403、418 或设备中断发生时，系统无法通知对应处理人。",
       "请在 Master 受限配置中录入正式钉钉机器人 Webhook，并完成一次受控通知演练。"
+    ));
+  }
+
+  if (input.monitoringAlertConfigured === false) {
+    issues.push(issue(
+      "system:monitoring-alert-missing",
+      "blocker",
+      "system",
+      "系统监控告警尚未配置",
+      "设备离线、任务卡住或数据产物异常时，系统无法形成持续监测和恢复通知。",
+      "启用 Prometheus 与 Alertmanager，配置内部告警令牌，并完成一次触发与恢复演练。"
     ));
   }
 

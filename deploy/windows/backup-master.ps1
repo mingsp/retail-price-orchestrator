@@ -3,7 +3,8 @@ param(
     [string]$InstallRoot = 'D:\SpanAI\retail-radar-master',
     [string]$ProjectName = 'retail-radar',
     [string]$MasterUrl = 'https://127.0.0.1:2808',
-    [string]$BackupDestinationRoot = ''
+    [string]$BackupDestinationRoot = '',
+    [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$BackupPrefix = 'predeploy'
 )
 
 Set-StrictMode -Version Latest
@@ -54,7 +55,7 @@ if ($activeTaskCount -gt 0) {
 
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupBase = if ($BackupDestinationRoot) { $BackupDestinationRoot } else { Join-Path $InstallRoot 'backups' }
-$backupRoot = Join-Path $backupBase "predeploy-$timestamp"
+$backupRoot = Join-Path $backupBase "$BackupPrefix-$timestamp"
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
 & icacls.exe $backupRoot /inheritance:r /grant:r `
     'SYSTEM:(OI)(CI)F' `

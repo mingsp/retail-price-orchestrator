@@ -2,11 +2,29 @@ groups:
   - name: retail-radar-p0
     rules:
       - alert: RetailRadarWorkerHeartbeatStale
-        expr: retail_orchestrator_oldest_worker_heartbeat_seconds > 120
+        expr: retail_orchestrator_stale_active_workers > 0
         for: 2m
         labels: { severity: warning }
         annotations:
-          summary: "采集设备状态超过 2 分钟未更新"
+          summary: "正在执行任务的采集设备超过 2 分钟未更新"
+      - alert: RetailRadarMasterUnavailable
+        expr: up{job="retail-radar-master"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "调度服务暂时不可用"
+      - alert: RetailRadarExpiredTaskLease
+        expr: retail_orchestrator_expired_leases > 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "存在等待系统恢复的采集任务"
+      - alert: RetailRadarTaskNeedsAttention
+        expr: retail_orchestrator_attention_tasks > 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "存在需要处理的采集任务"
       - alert: RetailRadarNotificationDeadLetter
         expr: retail_orchestrator_notification_dead_letters > 0 or retail_orchestrator_notification_outcome_unknown > 0
         for: 1m
