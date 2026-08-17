@@ -1,6 +1,6 @@
 {
   "name": "retail-price-orchestrator",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "private": false,
   "type": "module",
   "engines": {

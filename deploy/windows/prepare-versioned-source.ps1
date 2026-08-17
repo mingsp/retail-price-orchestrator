@@ -5,7 +5,8 @@ param(
     [string]$RepositoryUrl = 'https://github.com/mingsp/retail-price-orchestrator.git',
     [string]$InstallRoot = 'C:\ProgramData\RetailRadar\Master',
     [string]$OfflineCorepackHome = '',
-    [string]$OfflinePnpmStore = ''
+    [string]$OfflinePnpmStore = '',
+    [string]$OfflinePnpmCache = ''
 )
 
 Set-StrictMode -Version Latest
@@ -64,6 +65,9 @@ function Invoke-PinnedPnpm {
     if ($script:offlinePnpmStore -and $effectiveArguments.Count -gt 0 -and $effectiveArguments[0] -eq 'install') {
         $effectiveArguments += @('--offline', '--store-dir', $script:offlinePnpmStore)
     }
+    if ($script:offlinePnpmCache) {
+        $effectiveArguments = @("--config.cache-dir=$script:offlinePnpmCache") + $effectiveArguments
+    }
     if ($script:corepackCommand) {
         Invoke-NativeCommand -Command $script:corepackCommand -Arguments (@('pnpm') + $effectiveArguments) -FailureMessage "pnpm command failed: $($effectiveArguments -join ' ')"
     } else {
@@ -75,20 +79,28 @@ function Invoke-PinnedPnpm {
     }
 }
 
-$offlineRequested = -not [string]::IsNullOrWhiteSpace($OfflineCorepackHome) -or -not [string]::IsNullOrWhiteSpace($OfflinePnpmStore)
+$offlineRequested = -not [string]::IsNullOrWhiteSpace($OfflineCorepackHome) `
+    -or -not [string]::IsNullOrWhiteSpace($OfflinePnpmStore) `
+    -or -not [string]::IsNullOrWhiteSpace($OfflinePnpmCache)
 if ($offlineRequested) {
-    if ([string]::IsNullOrWhiteSpace($OfflineCorepackHome) -or [string]::IsNullOrWhiteSpace($OfflinePnpmStore)) {
-        throw 'OfflineCorepackHome and OfflinePnpmStore must be supplied together'
+    if ([string]::IsNullOrWhiteSpace($OfflineCorepackHome) `
+        -or [string]::IsNullOrWhiteSpace($OfflinePnpmStore) `
+        -or [string]::IsNullOrWhiteSpace($OfflinePnpmCache)) {
+        throw 'OfflineCorepackHome, OfflinePnpmStore and OfflinePnpmCache must be supplied together'
     }
     $offlineCorepack = [IO.Path]::GetFullPath($OfflineCorepackHome)
     $offlinePnpmStore = [IO.Path]::GetFullPath($OfflinePnpmStore)
+    $offlinePnpmCache = [IO.Path]::GetFullPath($OfflinePnpmCache)
     if (-not (Test-Path -LiteralPath $offlineCorepack -PathType Container)) { throw 'Offline Corepack cache was not found' }
     if (-not (Test-Path -LiteralPath $offlinePnpmStore -PathType Container)) { throw 'Offline pnpm store was not found' }
+    if (-not (Test-Path -LiteralPath $offlinePnpmCache -PathType Container)) { throw 'Offline pnpm metadata cache was not found' }
     $env:COREPACK_HOME = $offlineCorepack
     $env:COREPACK_ENABLE_NETWORK = '0'
     $script:offlinePnpmStore = $offlinePnpmStore
+    $script:offlinePnpmCache = $offlinePnpmCache
 } else {
     $script:offlinePnpmStore = $null
+    $script:offlinePnpmCache = $null
 }
 
 $gitCommand = Resolve-RequiredCommand -Names @('git.exe', 'git')
