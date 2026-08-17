@@ -14,9 +14,10 @@
 | 运行 commit | `bc61bacf316ca6139973984fd6ed803537f3bb09` |
 | schemaVersion | `2026-08-17-p0.1` |
 | GitHub `main` 证据提交 | `caca1e39357c3dd9513b0affb4c53d521d708ad8` |
-| 运行源码目录 | 201：`sources/v0.2.5`；66：`sources/v0.2.5` |
+| 固定 Codex 项目入口 | 201：`D:\SpanAI\retail-price-orchestrator` |
+| 版本化运行源码 | 201：`D:\SpanAI\retail-radar-master\sources\v0.2.5`；66：`C:\ProgramData\RetailRadar\Standalone\sources\v0.2.5` |
 
-生产运行固定在 Tag/commit，不直接运行随后变化的 `main`。`main` 可以包含发布后的证据文档，但不能据此认定生产代码已经再次升级。
+201 的 Codex、人工维护和日常开发始终从固定项目入口进入；版本化运行源码只供部署、Canary、回滚和取证使用，不作为人员每次切换的工作目录。生产运行固定在 Tag/commit，不直接运行随后变化的 `main`。`main` 可以包含发布后的证据文档，但不能据此认定生产代码已经再次升级。
 
 ## 3. 节点职责
 

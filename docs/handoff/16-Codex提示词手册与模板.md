@@ -77,6 +77,9 @@ Worker、Browser Slot、Profile、账号、门店、checkpoint 和原始 artifac
 ```text
 请接管 Retail-Radar 201 Master。先只读核验，不创建任务、不启动 Chrome、不连接真实门店页面。
 
+固定项目根目录是 D:\SpanAI\retail-price-orchestrator。不要把
+D:\SpanAI\retail-radar-master\sources\<version> 当作 Codex 工作目录；后者只用于生产部署、回滚和取证。
+
 按顺序读取：
 1. HANDOFF_START_HERE.md
 2. docs/operations/2026-08-17-github-66-201-release-handoff.md
