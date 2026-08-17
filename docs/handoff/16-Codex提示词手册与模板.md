@@ -53,12 +53,13 @@ Worker、Browser Slot、Profile、账号、门店、checkpoint 和原始 artifac
 请按顺序阅读：
 1. AGENTS.md
 2. HANDOFF_START_HERE.md
-3. docs/handoff/00-项目目标与边界.md
-4. docs/handoff/04-设备账号Profile-CDP门店绑定.md
-5. docs/handoff/05-任务规划与低频采集SOP.md
-6. docs/handoff/07-风险事件与人工处理.md
-7. docs/handoff/14-账号风控Profile与登录操作手册.md
-8. docs/handoff/16-Codex提示词手册与模板.md
+3. docs/operations/2026-08-17-github-66-201-release-handoff.md
+4. docs/handoff/00-项目目标与边界.md
+5. docs/handoff/04-设备账号Profile-CDP门店绑定.md
+6. docs/handoff/05-任务规划与低频采集SOP.md
+7. docs/handoff/07-风险事件与人工处理.md
+8. docs/handoff/14-账号风控Profile与登录操作手册.md
+9. docs/handoff/16-Codex提示词手册与模板.md
 
 然后运行离线包验证和环境诊断。请输出：
 - 已证明
@@ -70,6 +71,35 @@ Worker、Browser Slot、Profile、账号、门店、checkpoint 和原始 artifac
 ```
 
 适用：第一次拿到交接包。
+
+## 4.1 模板 A1：201 Master 当前生产接管
+
+```text
+请接管 Retail-Radar 201 Master。先只读核验，不创建任务、不启动 Chrome、不连接真实门店页面。
+
+按顺序读取：
+1. HANDOFF_START_HERE.md
+2. docs/operations/2026-08-17-github-66-201-release-handoff.md
+3. docs/handoff/02-Codex固定阅读与操作顺序.md
+4. docs/handoff/10-部署升级回滚与备份.md
+5. docs/handoff/12-已验证与待现场验证能力.md
+
+当前正式基线应为 v0.2.5、commit bc61bacf316ca6139973984fd6ed803537f3bb09、
+schema 2026-08-17-p0.1。请从 /ready、/api/version、容器、PostgreSQL、Worker 心跳和
+Browser Slot 重新验证，不能只相信文档。
+
+请输出：
+- 当前生产版本是否一致
+- 201 当前负责的门店边界
+- Worker/CDP 当前在线事实
+- 活动任务、风险事件和人工待办
+- 最近可用备份和回滚目标
+- 真实小类目 Canary 前仍缺少的条件
+
+若当前证据与交接记录不一致，停止生产动作并报告差异。
+```
+
+适用：201 上新建 Codex 会话或完成版本升级后的首次接管。
 
 ## 5. 模板 B：新批次开始前只读检查
 

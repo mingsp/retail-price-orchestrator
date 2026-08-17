@@ -1,7 +1,7 @@
 # 新人从这里复制开篇提示词
 
 > 如果是在 201 Master 上首次接管系统，而不是已经明确门店的采集批次，请先使用
-> `docs/operations/201-codex-startup-prompt.md`，完成只读核验后再填写本模板。
+> `docs/handoff/16-Codex提示词手册与模板.md` 的“模板 A1：201 Master 当前生产接管”，完成只读核验后再填写本模板。
 
 ## 使用前只填写这些信息
 
@@ -55,10 +55,11 @@
 
 阶段 0：恢复项目真相
 1. 定位交接包或源码项目根目录。
-2. 阅读 AGENTS.md、HANDOFF_START_HERE.md、docs/handoff/00、01、02、04、05、07、08、11、
-   12、14、15、16。
+2. 阅读 AGENTS.md、HANDOFF_START_HERE.md、docs/operations/2026-08-17-github-66-201-release-handoff.md、
+   docs/handoff/00、01、02、04、05、07、08、10、11、12、14、15、16。
 3. 运行交接包完整性验证、脱敏真实样例回放和离线 doctor。
-4. 输出“已证明、尚未证明、需要人工提供”，不要把历史报告、旧 IP、旧端口或旧账号状态当作
+4. 从 `/ready`、`/api/version`、容器、数据库、Worker 心跳和 Browser Slot 复核当前生产基线。
+5. 输出“已证明、尚未证明、需要人工提供”，不要把历史报告、旧 IP、旧端口或旧账号状态当作
    当前事实。
 
 阶段 1：现场环境和资源发现

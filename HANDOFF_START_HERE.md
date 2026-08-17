@@ -19,29 +19,24 @@
 ## 固定阅读顺序
 
 1. `AGENTS.md`
-2. `docs/2026-08-11-Retail-Radar方案对抗式审查与会话交接.md`
-3. `docs/2026-08-11-Retail-Radar生产级后端与智能值守补强方案.md`
-4. 在 201 Master 上接管时，先阅读 `docs/operations/2026-08-11-201-master-blocker-remediation.md`
-5. 再阅读 `docs/operations/2026-08-11-201-master-migration-verification.md`
-6. 新建 201 Codex 会话时，复制 `docs/operations/201-codex-startup-prompt.md`
-7. 当前钉钉台账、账号分配和登录准备阅读 `docs/operations/2026-08-12-钉钉台账与账户登录准备.md`
-8. `docs/operations/2026-08-10-master-201-codex-handoff.md` 只作为历史快照阅读
-9. 准备真实门店任务时，再填写并阅读 `START_WITH_THIS_PROMPT.md`
-10. `docs/handoff/00-项目目标与边界.md`
-11. `docs/handoff/01-系统架构与数据流.md`
-12. `docs/handoff/02-Codex固定阅读与操作顺序.md`
-13. `docs/handoff/04-设备账号Profile-CDP门店绑定.md`
-14. `docs/handoff/05-任务规划与低频采集SOP.md`
-15. `docs/handoff/07-风险事件与人工处理.md`
-16. `docs/handoff/14-账号风控Profile与登录操作手册.md`
-17. `docs/handoff/15-新人演练与独立操作验收.md`
-18. `docs/handoff/16-Codex提示词手册与模板.md`
-19. `docs/handoff/08-原始数据质量与完整性验收.md`
-20. 其余 `docs/handoff/` 文档
+2. `docs/operations/2026-08-17-github-66-201-release-handoff.md`
+3. `docs/operations/2026-08-17-production-closure-report.md`
+4. `docs/handoff/00-项目目标与边界.md`
+5. `docs/handoff/01-系统架构与数据流.md`
+6. `docs/handoff/02-Codex固定阅读与操作顺序.md`
+7. `docs/handoff/04-设备账号Profile-CDP门店绑定.md`
+8. `docs/handoff/05-任务规划与低频采集SOP.md`
+9. `docs/handoff/07-风险事件与人工处理.md`
+10. `docs/handoff/14-账号风控Profile与登录操作手册.md`
+11. `docs/handoff/15-新人演练与独立操作验收.md`
+12. `docs/handoff/16-Codex提示词手册与模板.md`
+13. `docs/handoff/08-原始数据质量与完整性验收.md`
+14. 其余 `docs/handoff/` 文档
+15. 准备真实门店任务时，再填写并阅读 `START_WITH_THIS_PROMPT.md`
 
 ### 私有独立单店节点
 
-当接管已经部署的私有独立单店节点时，上述通用材料前还必须依次阅读该节点包内的：
+当接管已经部署的私有独立单店节点时，上述通用材料后还要读取该节点运行目录 `handoff/` 中的 `CURRENT-HANDOFF.md` 和 `START-CODEX.md`。如果节点还保留以下私有历史材料，可按顺序补充阅读：
 
 1. `docs/operations/66-final-handoff.md`
 2. `docs/operations/66-xcgjz-single-store-execution-handoff.md`
@@ -52,9 +47,7 @@
 
 原始提问库只用于恢复需求演变和纠偏上下文，不构成采集、登录、通知或写库授权。
 
-其中第 4、5 项是 201 当前生产事实和剩余门禁的入口。它们明确区分“已修复、待人工登录、
-待 Canary 验证”，并列出会造成假完成、重复任务和资产证据丢失的 P0 阻断项。下一会话不得
-跳过这两份文档直接实施主方案。
+私有历史材料用于解释需求演变，不替代当前发布记录、Master 数据和页面证据。
 
 ## 第一次离线演练
 
@@ -76,7 +69,7 @@ node handoff/scripts/doctor.mjs --json
 
 这些命令默认不连接真实 CDP、不启动 Chrome、不采集。
 
-本次 P0 生产加固和当前验证边界先阅读 `docs/operations/2026-08-17-production-closure-report.md`；准备 66/201 无覆盖升级时再阅读 `docs/operations/2026-08-17-github-66-201-release-handoff.md`。
+本次 P0 生产加固和验证边界见 `docs/operations/2026-08-17-production-closure-report.md`；66/201 当前版本、职责、备份、回滚点和剩余门禁统一见 `docs/operations/2026-08-17-github-66-201-release-handoff.md`。
 
 ## 第一次现场检查
 
@@ -105,9 +98,8 @@ Canary 通过后才能扩大到同门店其他类目或多个 Worker。
 
 ## 当前事实边界
 
-- 2026-08-11 的迁移验收事实以 `docs/operations/2026-08-11-201-master-migration-verification.md` 为准；
-  当前 `5 + 5` 登录拓扑、账号分配和剩余门禁以
-  `docs/operations/2026-08-12-钉钉台账与账户登录准备.md` 为准。
+- 201 与 66 当前正式运行 `v0.2.5` / `bc61bacf316ca6139973984fd6ed803537f3bb09` / `2026-08-17-p0.1`，但每次接管仍须从版本接口和容器重新验证。
+- 201 是长期 Master，66 是小柴购（甘家寨店）独立单店节点；具体账号、Profile、CDP 和在线状态以 Master、Worker、页面和当前生产台账为准。
 - 当前生产采集器是 `project/scripts/native-cdp-store-capture.mjs`。
 - SSH 只用于安装、升级和故障维护，不承担日常调度。
 - Worker 执行确定性脚本；Codex 在 Master 侧负责巡检、异常理解和白名单操作。

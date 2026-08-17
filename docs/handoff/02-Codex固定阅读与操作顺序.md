@@ -1,5 +1,12 @@
 # Codex 固定阅读与操作顺序
 
+## 阶段 0：确认生产基线
+
+1. 读取 `docs/operations/2026-08-17-github-66-201-release-handoff.md`，确认当前正式版本、节点职责、备份和回滚点。
+2. 读取目标节点的 `candidate-verification.json`，确认 `activation=switched`、Tag、commit 和版本接口结果。
+3. 只读检查 `/ready`、`/api/version`、容器镜像、活动任务、Worker 心跳和 Browser Slot。
+4. 当前证据与交接记录不一致时，以当前证据为准并停止生产动作，先修正交接记录。
+
 ## 阶段 1：离线理解
 
 1. 读取 `HANDOFF_START_HERE.md` 和 `AGENTS.md`。
@@ -16,6 +23,7 @@
 3. Browser Slot 与账号/Profile/CDP/门店绑定。
 4. 页面标题、`poi_id_str`、登录状态和风险状态。
 5. 未完成任务、lease、checkpoint 和 artifact。
+6. 当前节点职责是否与生产台账一致，避免 201 与 66 领取错误门店。
 
 输出必须分成：
 
