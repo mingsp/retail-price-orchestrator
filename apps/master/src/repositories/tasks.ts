@@ -10,6 +10,12 @@ import type {
   UpdateCategoryTaskInput
 } from "@retail-orchestrator/shared";
 import type { Pool } from "pg";
+import { aggregateStoreRun } from "./run-progress.js";
+import { recordTaskBusinessActivity } from "./business-activity-events.js";
+import { buildCanonicalCategoryKey, buildRunBusinessKey } from "./business-identities.js";
+import { validTaskPredecessors } from "./task-state-machine.js";
+import { isAccountPoolEligible } from "./account-claim-eligibility.js";
+import { assertRunScopeReference, getRunScopeReference } from "./scope-manifests.js";
 
 export async function upsertStore(db: Pool, input: CreateStoreInput): Promise<StoreRecord> {
   const result = await db.query(
@@ -21,10 +27,10 @@ export async function upsertStore(db: Pool, input: CreateStoreInput): Promise<St
     ON CONFLICT (store_id) DO UPDATE SET
       name = EXCLUDED.name,
       platform = EXCLUDED.platform,
-      poi_id_str = EXCLUDED.poi_id_str,
-      url = EXCLUDED.url,
-      city = EXCLUDED.city,
-      address = EXCLUDED.address,
+      poi_id_str = COALESCE(EXCLUDED.poi_id_str, stores.poi_id_str),
+      url = COALESCE(NULLIF(EXCLUDED.url, ''), stores.url),
+      city = COALESCE(EXCLUDED.city, stores.city),
+      address = COALESCE(EXCLUDED.address, stores.address),
       status = EXCLUDED.status,
       collection_policy = EXCLUDED.collection_policy,
       updated_at = now()
@@ -51,13 +57,38 @@ export async function listStores(db: Pool): Promise<StoreRecord[]> {
 }
 
 export async function createRun(db: Pool, input: CreateRunInput): Promise<StoreRunRecord> {
+  const scheduleWindow = input.scheduleWindow || input.runLabel;
+  const scopeReference = input.scopeManifestId
+    ? assertRunScopeReference(input, await getRunScopeReference(db, input.scopeManifestId))
+    : undefined;
+  const scopeVersion = scopeReference?.scopeVersion || input.scopeVersion || "scope:unfrozen-v1";
+  const runBusinessKey = buildRunBusinessKey({
+    channel: "meituan_h5",
+    storeId: input.storeId,
+    scheduleWindow,
+    scopeVersion
+  });
   const result = await db.query(
     `
-    INSERT INTO store_runs (store_id, run_label, strategy, target_finish_at)
-    VALUES ($1,$2,$3,$4)
+    INSERT INTO store_runs (
+      run_business_key, store_id, run_label, schedule_window, scope_version,
+      scope_manifest_id, strategy, target_finish_at
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    ON CONFLICT (run_business_key) DO UPDATE SET
+      updated_at = store_runs.updated_at
     RETURNING *
     `,
-    [input.storeId, input.runLabel, input.strategy || "category_split", input.targetFinishAt || null]
+    [
+      runBusinessKey,
+      input.storeId,
+      input.runLabel,
+      scheduleWindow,
+      scopeVersion,
+      input.scopeManifestId || null,
+      input.strategy || "category_split",
+      input.targetFinishAt || null
+    ]
   );
   return getRun(db, result.rows[0].run_id) as Promise<StoreRunRecord>;
 }
@@ -96,18 +127,27 @@ export async function createCategoryTasks(
 
   const created: CategoryTaskRecord[] = [];
   for (const [index, task] of tasks.entries()) {
+    const canonicalCategoryKey = task.canonicalCategoryKey || buildCanonicalCategoryKey(task);
     const result = await db.query(
       `
       INSERT INTO category_tasks (
-        run_id, store_id, category_name, category_order, priority, expected_items, cursor
+        run_id, store_id, category_name, canonical_category_key,
+        category_order, priority, expected_items, cursor
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      ON CONFLICT (run_id, canonical_category_key) DO UPDATE SET
+        category_name = EXCLUDED.category_name,
+        category_order = LEAST(category_tasks.category_order, EXCLUDED.category_order),
+        priority = LEAST(category_tasks.priority, EXCLUDED.priority),
+        expected_items = COALESCE(EXCLUDED.expected_items, category_tasks.expected_items),
+        updated_at = now()
       RETURNING *
       `,
       [
         runId,
         run.storeId,
         task.categoryName,
+        canonicalCategoryKey,
         task.categoryOrder ?? index,
         task.priority ?? 100,
         task.expectedItems ?? null,
@@ -116,6 +156,8 @@ export async function createCategoryTasks(
     );
     created.push(await getTask(db, result.rows[0].task_id) as CategoryTaskRecord);
   }
+  await aggregateStoreRun(db, runId);
+  await Promise.all(created.map((task) => recordTaskBusinessActivity(db, task)));
   return created;
 }
 
@@ -151,18 +193,39 @@ export async function updateTask(
   taskId: string,
   update: UpdateCategoryTaskInput
 ): Promise<CategoryTaskRecord | null> {
-  await db.query(
+  const validPredecessors = update.status ? validTaskPredecessors(update.status) : null;
+  const result = await db.query(
     `
     UPDATE category_tasks SET
       status = COALESCE($2, status),
       assigned_worker_id = CASE WHEN $3::boolean THEN $4 ELSE assigned_worker_id END,
       assigned_account_id = CASE WHEN $5::boolean THEN $6 ELSE assigned_account_id END,
       assigned_profile_id = CASE WHEN $7::boolean THEN $8 ELSE assigned_profile_id END,
-      collected_items = COALESCE($9, collected_items),
-      cursor = COALESCE($10, cursor),
-      last_error = CASE WHEN $11::boolean THEN $12 ELSE last_error END,
+      assigned_cdp_endpoint_id = CASE WHEN $9::boolean THEN $10 ELSE assigned_cdp_endpoint_id END,
+      lease_owner = CASE WHEN $11::boolean THEN $12 ELSE lease_owner END,
+      lease_until = CASE WHEN $13::boolean THEN $14::timestamptz ELSE lease_until END,
+      last_progress_at = CASE
+        WHEN $15::boolean THEN $16::timestamptz
+        WHEN $24::integer IS NOT NULL THEN now()
+        ELSE last_progress_at
+      END,
+      missing_spu_count = COALESCE($17, missing_spu_count),
+      checkpoint_artifact_id = CASE WHEN $18::boolean THEN $19::uuid ELSE checkpoint_artifact_id END,
+      raw_artifact_id = CASE WHEN $20::boolean THEN $21::uuid ELSE raw_artifact_id END,
+      summary_artifact_id = CASE WHEN $22::boolean THEN $23::uuid ELSE summary_artifact_id END,
+      collected_items = COALESCE($24, collected_items),
+      cursor = COALESCE($25, cursor),
+      last_error = CASE WHEN $26::boolean THEN $27 ELSE last_error END,
       updated_at = now()
     WHERE task_id = $1
+      AND ($28::text IS NULL OR lease_owner = $28)
+      AND ($29::integer IS NULL OR lease_generation = $29)
+      AND ($2::text IS NULL OR status = ANY($30::text[]))
+      AND (
+        ($28::text IS NULL AND $29::integer IS NULL)
+        OR lease_until > now()
+      )
+    RETURNING task_id
     `,
     [
       taskId,
@@ -173,26 +236,110 @@ export async function updateTask(
       update.assignedAccountId || null,
       "assignedProfileId" in update,
       update.assignedProfileId || null,
+      "assignedCdpEndpointId" in update,
+      update.assignedCdpEndpointId || null,
+      "leaseOwner" in update,
+      update.leaseOwner || null,
+      "leaseUntil" in update,
+      update.leaseUntil || null,
+      "lastProgressAt" in update,
+      update.lastProgressAt || null,
+      update.missingSpuCount ?? null,
+      "checkpointArtifactId" in update,
+      update.checkpointArtifactId || null,
+      "rawArtifactId" in update,
+      update.rawArtifactId || null,
+      "summaryArtifactId" in update,
+      update.summaryArtifactId || null,
       update.collectedItems ?? null,
       update.cursor ? JSON.stringify(update.cursor) : null,
       "lastError" in update,
-      update.lastError || null
+      update.lastError || null,
+      update.expectedLeaseOwner || null,
+      update.expectedLeaseGeneration ?? null,
+      validPredecessors
     ]
   );
-  return getTask(db, taskId);
+  if (!result.rows[0]) return null;
+  const task = await getTask(db, taskId);
+  if (task) {
+    await aggregateStoreRun(db, task.runId);
+    await recordTaskBusinessActivity(db, task);
+  }
+  return task;
+}
+
+export async function updateTaskWithRevokedLease(
+  db: Pool,
+  taskId: string,
+  buildUpdate: UpdateCategoryTaskInput | ((task: CategoryTaskRecord) => UpdateCategoryTaskInput)
+): Promise<CategoryTaskRecord | null> {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const locked = await client.query(
+      `SELECT t.*, s.name AS store_name
+       FROM category_tasks t JOIN stores s ON s.store_id = t.store_id
+       WHERE t.task_id = $1 FOR UPDATE OF t`,
+      [taskId]
+    );
+    if (!locked.rows[0]) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+    await client.query(
+      `UPDATE category_tasks
+       SET lease_owner = NULL, lease_until = NULL,
+           lease_generation = lease_generation + 1, updated_at = now()
+       WHERE task_id = $1`,
+      [taskId]
+    );
+    const current = mapTask(locked.rows[0]);
+    const update = typeof buildUpdate === "function" ? buildUpdate(current) : buildUpdate;
+    const task = await updateTask(client as unknown as Pool, taskId, update);
+    await client.query("COMMIT");
+    return task;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function claimNextTask(db: Pool, input: TaskClaimInput): Promise<TaskClaimResult> {
   const account = await db.query(
     `
-    SELECT a.status AS account_status, a.risk_level, p.status AS profile_status
+    SELECT
+      a.status AS account_status,
+      a.risk_level,
+      ap.status AS pool_status,
+      ap.risk_level AS pool_risk_level,
+      ap.available_after AS pool_available_after,
+      ap.assigned_worker_id AS pool_worker_id,
+      ap.assigned_store_id AS pool_store_id,
+      p.status AS profile_status,
+      c.status AS cdp_status,
+      b.target_store_id,
+      s.name AS target_store_name,
+      s.poi_id_str AS target_poi_id_str,
+      s.collection_policy AS target_collection_policy
     FROM accounts a
+    LEFT JOIN account_pool ap ON ap.account_id = a.account_id
     JOIN profiles p ON p.profile_id = a.profile_id
+    LEFT JOIN cdp_endpoints c ON c.endpoint_id = $4 AND c.worker_id = $2
+    LEFT JOIN browser_slots b ON b.slot_id = c.slot_id
+      AND b.worker_id = $2
+      AND b.account_id = $1
+      AND b.profile_id = $3
+      AND b.status <> 'retired'
+    LEFT JOIN stores s ON s.store_id = b.target_store_id
     WHERE a.account_id = $1
       AND a.worker_id = $2
       AND a.profile_id = $3
+      AND ($4::text IS NULL OR b.slot_id IS NOT NULL)
     `,
-    [input.accountId, input.workerId, input.profileId]
+    [input.accountId, input.workerId, input.profileId, input.cdpEndpointId || null]
   );
 
   if (!account.rows[0] || !["safe", "running"].includes(account.rows[0].account_status)) {
@@ -201,26 +348,84 @@ export async function claimNextTask(db: Pool, input: TaskClaimInput): Promise<Ta
   if (account.rows[0].risk_level === "blocked" || account.rows[0].risk_level === "high") {
     return { reason: "account_not_eligible" };
   }
+  if (!isAccountPoolEligible(account.rows[0].pool_status ? {
+    status: account.rows[0].pool_status,
+    riskLevel: account.rows[0].pool_risk_level,
+    availableAfter: account.rows[0].pool_available_after
+  } : undefined)) {
+    return { reason: "account_not_eligible" };
+  }
+  if (account.rows[0].pool_worker_id && account.rows[0].pool_worker_id !== input.workerId) {
+    return { reason: "account_not_eligible" };
+  }
   if (account.rows[0].profile_status !== "safe") {
     return { reason: "profile_not_eligible" };
+  }
+  if (!input.cdpEndpointId || !account.rows[0].cdp_status || !["ready", "running"].includes(account.rows[0].cdp_status)) {
+    return { reason: "cdp_not_eligible" };
+  }
+  if (input.observedPageState !== "ready") return { reason: "page_not_ready" };
+  if (!matchesObservedStore(
+    account.rows[0].target_poi_id_str,
+    account.rows[0].target_store_name,
+    input.observedPoiIdStr,
+    input.observedStoreName
+  )) return { reason: "store_mismatch" };
+  if (!matchesObservedLocation(
+    account.rows[0].target_collection_policy,
+    input.observedActualLat,
+    input.observedActualLng
+  )) return { reason: "location_not_confirmed" };
+  if (account.rows[0].pool_store_id && account.rows[0].pool_store_id !== account.rows[0].target_store_id) {
+    return { reason: "store_mismatch" };
   }
 
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const selected = await client.query(
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+      [input.workerId, input.accountId, input.profileId, input.cdpEndpointId || ""].join("|")
+    ]);
+    const activeForIdentity = await client.query(
       `
       SELECT task_id
       FROM category_tasks
-      WHERE status = 'pending'
-        AND (assigned_worker_id IS NULL OR assigned_worker_id = $1)
-        AND (assigned_account_id IS NULL OR assigned_account_id = $2)
-        AND (assigned_profile_id IS NULL OR assigned_profile_id = $3)
-      ORDER BY priority ASC, category_order ASC, created_at ASC
+      WHERE status IN ('assigned', 'running', 'collecting', 'captured', 'uploading', 'structuring', 'validating')
+        AND (
+          assigned_account_id = $1
+          OR assigned_profile_id = $2
+          OR ($3::text IS NOT NULL AND assigned_cdp_endpoint_id = $3)
+        )
+      LIMIT 1
+      `,
+      [input.accountId, input.profileId, input.cdpEndpointId || null]
+    );
+    if (activeForIdentity.rows[0]) {
+      await client.query("COMMIT");
+      return { reason: "no_task" };
+    }
+    const selected = await client.query(
+      `
+      SELECT t.task_id
+      FROM category_tasks t
+      JOIN cdp_endpoints c ON c.endpoint_id = $4
+      JOIN browser_slots b ON b.slot_id = c.slot_id
+      WHERE t.status = 'pending'
+        AND t.assigned_worker_id = $1
+        AND t.assigned_account_id = $2
+        AND t.assigned_profile_id = $3
+        AND t.assigned_cdp_endpoint_id = $4
+        AND c.worker_id = $1
+        AND b.worker_id = $1
+        AND b.account_id = $2
+        AND b.profile_id = $3
+        AND b.target_store_id = t.store_id
+        AND b.status <> 'retired'
+      ORDER BY t.priority ASC, t.category_order ASC, t.created_at ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1
       `,
-      [input.workerId, input.accountId, input.profileId]
+      [input.workerId, input.accountId, input.profileId, input.cdpEndpointId || null]
     );
 
     if (!selected.rows[0]) {
@@ -235,14 +440,22 @@ export async function claimNextTask(db: Pool, input: TaskClaimInput): Promise<Ta
         assigned_worker_id = $2,
         assigned_account_id = $3,
         assigned_profile_id = $4,
+        assigned_cdp_endpoint_id = COALESCE($5, assigned_cdp_endpoint_id),
+        lease_owner = $2,
+        lease_until = now() + interval '10 minutes',
+        lease_generation = lease_generation + 1,
         updated_at = now()
       WHERE task_id = $1
       RETURNING task_id
       `,
-      [selected.rows[0].task_id, input.workerId, input.accountId, input.profileId]
+      [selected.rows[0].task_id, input.workerId, input.accountId, input.profileId, input.cdpEndpointId || null]
     );
     await client.query("COMMIT");
     const task = await getTask(db, updated.rows[0].task_id);
+    if (task) {
+      await aggregateStoreRun(db, task.runId);
+      await recordTaskBusinessActivity(db, task);
+    }
     return task ? { task } : { reason: "no_task" };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -250,6 +463,97 @@ export async function claimNextTask(db: Pool, input: TaskClaimInput): Promise<Ta
   } finally {
     client.release();
   }
+}
+
+export async function markNextPreflightTaskManualRequired(
+  db: Pool,
+  input: TaskClaimInput,
+  reason: "store_mismatch" | "location_not_confirmed" | "page_not_ready"
+): Promise<CategoryTaskRecord | null> {
+  const result = await db.query(`
+    WITH candidate AS (
+      SELECT task_id
+      FROM category_tasks
+      WHERE status IN ('pending', 'assigned')
+        AND assigned_worker_id = $1
+        AND assigned_account_id = $2
+        AND assigned_profile_id = $3
+        AND assigned_cdp_endpoint_id = $4
+      ORDER BY priority, category_order, created_at
+      LIMIT 1
+      FOR UPDATE SKIP LOCKED
+    )
+    UPDATE category_tasks t SET
+      status = 'manual_required',
+      lease_owner = NULL,
+      lease_until = NULL,
+      last_error = $5,
+      cursor = cursor || jsonb_build_object(
+        'preflightBlockedAt', now(),
+        'preflightBlockedReason', $5::text
+      ),
+      updated_at = now()
+    FROM candidate
+    WHERE t.task_id = candidate.task_id
+    RETURNING t.task_id
+  `, [input.workerId, input.accountId, input.profileId, input.cdpEndpointId || null, reason]);
+  return result.rows[0] ? getTask(db, result.rows[0].task_id) : null;
+}
+
+export function matchesObservedStore(
+  expectedPoiIdStr: string | undefined,
+  expectedStoreName: string | undefined,
+  observedPoiIdStr: string | undefined,
+  observedStoreName: string | undefined
+): boolean {
+  if (expectedPoiIdStr) return expectedPoiIdStr === observedPoiIdStr;
+  if (!expectedStoreName || !observedStoreName) return false;
+  const normalize = (value: string) => value.replace(/[\s（）()·_-]/g, "").toLowerCase();
+  return normalize(observedStoreName).includes(normalize(expectedStoreName));
+}
+
+export function matchesObservedLocation(
+  collectionPolicy: Record<string, unknown> | undefined,
+  observedLatitude: number | undefined,
+  observedLongitude: number | undefined
+): boolean {
+  const rule = collectionPolicy?.locationPreflight;
+  if (!rule || typeof rule !== "object" || Array.isArray(rule)) return true;
+  const policy = rule as Record<string, unknown>;
+  if (policy.required !== true) return true;
+  const latitude = Number(policy.latitude);
+  const longitude = Number(policy.longitude);
+  const observedLat = Number(observedLatitude);
+  const observedLng = Number(observedLongitude);
+  const configuredRadius = Number(policy.maxDistanceMeters);
+  const maxDistanceMeters = Number.isFinite(configuredRadius)
+    ? Math.min(50_000, Math.max(100, configuredRadius))
+    : 5_000;
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    !Number.isFinite(observedLat) ||
+    !Number.isFinite(observedLng)
+  ) return false;
+  return distanceMeters(latitude, longitude, observedLat, observedLng) <= maxDistanceMeters;
+}
+
+function distanceMeters(
+  latitudeA: number,
+  longitudeA: number,
+  latitudeB: number,
+  longitudeB: number
+): number {
+  const radians = (value: number) => value * Math.PI / 180;
+  const earthRadiusMeters = 6_371_000;
+  const deltaLatitude = radians(latitudeB - latitudeA);
+  const deltaLongitude = radians(longitudeB - longitudeA);
+  const a =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(radians(latitudeA)) *
+      Math.cos(radians(latitudeB)) *
+      Math.sin(deltaLongitude / 2) ** 2;
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function mapStore(row: any): StoreRecord {
@@ -271,9 +575,13 @@ function mapStore(row: any): StoreRecord {
 function mapRun(row: any): StoreRunRecord {
   return {
     runId: row.run_id,
+    runBusinessKey: row.run_business_key,
     storeId: row.store_id,
     storeName: row.store_name || undefined,
     runLabel: row.run_label,
+    scheduleWindow: row.schedule_window,
+    scopeVersion: row.scope_version,
+    scopeManifestId: row.scope_manifest_id || undefined,
     status: row.status,
     strategy: row.strategy,
     targetFinishAt: row.target_finish_at?.toISOString(),
@@ -291,12 +599,22 @@ function mapTask(row: any): CategoryTaskRecord {
     storeId: row.store_id,
     storeName: row.store_name || undefined,
     categoryName: row.category_name,
+    canonicalCategoryKey: row.canonical_category_key,
     categoryOrder: row.category_order,
     status: row.status,
     priority: row.priority,
     assignedWorkerId: row.assigned_worker_id || undefined,
     assignedAccountId: row.assigned_account_id || undefined,
     assignedProfileId: row.assigned_profile_id || undefined,
+    assignedCdpEndpointId: row.assigned_cdp_endpoint_id || undefined,
+    leaseOwner: row.lease_owner || undefined,
+    leaseUntil: row.lease_until?.toISOString(),
+    leaseGeneration: Number(row.lease_generation || 0),
+    lastProgressAt: row.last_progress_at?.toISOString(),
+    missingSpuCount: row.missing_spu_count || 0,
+    checkpointArtifactId: row.checkpoint_artifact_id || undefined,
+    rawArtifactId: row.raw_artifact_id || undefined,
+    summaryArtifactId: row.summary_artifact_id || undefined,
     expectedItems: row.expected_items ?? undefined,
     collectedItems: row.collected_items,
     cursor: row.cursor || {},

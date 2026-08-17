@@ -1,0 +1,25 @@
+{
+  admin off
+  auto_https off
+}
+
+:80 {
+  handle /api/* {
+    reverse_proxy master:17890
+  }
+  handle /ws/* {
+    reverse_proxy master:17890
+  }
+  handle /health {
+    reverse_proxy master:17890
+  }
+  handle /ready {
+    reverse_proxy master:17890
+  }
+  handle /metrics {
+    reverse_proxy master:17890
+  }
+  handle {
+    reverse_proxy dashboard:80
+  }
+}

@@ -1,14 +1,38 @@
 {
   "name": "retail-price-orchestrator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "type": "module",
+  "engines": {
+    "node": ">=22.14.0 <23",
+    "pnpm": "11.21.0"
+  },
   "scripts": {
-    "dev:master": "pnpm --dir apps/master dev",
-    "dev:worker": "pnpm --dir apps/worker dev",
-    "dev:dashboard": "pnpm --dir apps/dashboard dev",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "build:production": "pnpm --filter @retail-orchestrator/shared build && pnpm --filter @retail-orchestrator/master build && pnpm --filter @retail-orchestrator/worker build && pnpm --filter @retail-orchestrator/dashboard build && pnpm deploy:validate",
+    "deploy:validate": "node deploy/validation/validate-production-deployment.mjs",
+    "release:worker": "node deploy/release/build-worker-release.mjs",
+    "release:manifest": "node deploy/release/build-release-manifest.mjs",
+    "dev:master": "node scripts/run-workspace.mjs apps/master dev",
+    "dev:worker": "node scripts/run-workspace.mjs apps/worker dev",
+    "dev:dashboard": "node scripts/run-workspace.mjs apps/dashboard dev",
+    "cdp:identity": "node scripts/open-cdp-identity-pages.mjs",
+    "cdp:monitor": "node scripts/monitor-cdp-login-and-passive-capture.mjs",
+    "handoff:test": "node --test handoff/test/*.test.mjs",
+    "handoff:build": "powershell -NoProfile -ExecutionPolicy Bypass -File handoff/scripts/build-package.ps1",
+    "handoff:verify": "node handoff/scripts/verify-package.mjs",
+    "public:build": "node scripts/publication/public-repository.mjs build --source .",
+    "public:verify": "node scripts/publication/public-repository.mjs verify",
+    "production:self-check": "node scripts/production-self-check.mjs",
+    "production:e2e": "node scripts/production-e2e.mjs",
+    "acceptance:verify": "node scripts/verify-production-acceptance.mjs",
+    "registry:typecheck": "pnpm --filter @retail-orchestrator/registry-sync typecheck",
+    "registry:test": "pnpm --filter @retail-orchestrator/registry-sync test",
+    "registry:build": "pnpm --filter @retail-orchestrator/registry-sync build",
+    "registry:sync": "pnpm --filter @retail-orchestrator/registry-sync sync",
+    "typecheck": "node scripts/run-workspace.mjs . -r typecheck",
+    "test:release": "node --test deploy/release/*.test.mjs",
+    "test:operations": "node --test deploy/backup/*.test.mjs",
+    "test": "pnpm test:release && pnpm test:operations && node scripts/run-workspace.mjs . -r test"
   },
   "keywords": [
     "scheduler",
@@ -16,6 +40,5 @@
     "price-monitoring",
     "human-in-the-loop"
   ],
-  "license": "MIT",
-  "packageManager": "pnpm@10.0.0"
+  "packageManager": "pnpm@11.21.0"
 }

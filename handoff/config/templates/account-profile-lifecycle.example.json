@@ -1,0 +1,38 @@
+{
+  "account": {
+    "accountId": "sample-account-01",
+    "maskedLogin": "138****0000",
+    "ownerAlias": "sample-operator-01",
+    "status": "safe",
+    "instantRetailStatus": "unknown",
+    "targetStoreStatus": "unknown",
+    "lastRiskAt": null,
+    "cooldownUntil": null,
+    "nextReviewAt": null
+  },
+  "profile": {
+    "profileId": "sample-profile-01",
+    "workerId": "sample-worker-01",
+    "browserSlotId": "sample-slot-01",
+    "status": "new",
+    "pureCollector": true,
+    "merchantBackendUsed": false,
+    "createdAt": "2026-07-31T09:00:00+08:00",
+    "retiredAt": null,
+    "retireReason": null
+  },
+  "binding": {
+    "storeId": "sample-store-01",
+    "storeName": "脱敏示例门店",
+    "cdpPort": 19221,
+    "confirmedAt": "<CONFIRMED_AT>",
+    "confirmedBy": "<OPERATOR_ALIAS>"
+  },
+  "evidence": {
+    "identityPageConfirmed": false,
+    "loginConfirmed": false,
+    "storePoiConfirmed": false,
+    "canaryPassed": false,
+    "d1ReviewStatus": "pending"
+  }
+}

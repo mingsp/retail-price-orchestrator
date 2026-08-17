@@ -18,6 +18,6 @@ export async function ensureBuckets(client: Client): Promise<void> {
   for (const bucket of ["raw-artifacts", "exports", "screenshots", "logs"]) {
     const exists = await client.bucketExists(bucket).catch(() => false);
     if (!exists) await client.makeBucket(bucket, "us-east-1");
+    await client.setBucketVersioning(bucket, { Status: "Enabled" });
   }
 }
-

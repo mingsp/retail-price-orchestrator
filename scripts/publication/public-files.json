@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "requiredPaths": [
+    ".env.example",
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "HANDOFF_START_HERE.md",
+    "README.md",
+    "SECURITY.md",
+    "START_WITH_THIS_PROMPT.md",
+    "apps/master/package.json",
+    "apps/worker/package.json",
+    "apps/dashboard/package.json",
+    "docs/handoff/00-项目目标与边界.md",
+    "docs/handoff/16-Codex提示词手册与模板.md",
+    "docs/operations/2026-08-17-production-closure-report.md",
+    "docs/operations/2026-08-17-github-66-201-release-handoff.md",
+    "handoff/scripts/verify-package.mjs",
+    "infra/docker-compose.production.yml",
+    "package.json",
+    "scripts/native-cdp-store-capture.mjs"
+  ],
+  "includedPaths": [
+    "docs/operations/2026-08-17-production-closure-report.md",
+    "docs/operations/2026-08-17-github-66-201-release-handoff.md"
+  ],
+  "excludedPrefixes": [
+    ".publication/",
+    "artifacts/",
+    "data/",
+    "docs/operations/",
+    "docs/run-logs/",
+    "docs/superpowers/plans/",
+    "docs/superpowers/specs/",
+    "handoff/releases/",
+    "handoff/work/",
+    "deploy/release/out/",
+    "outputs/",
+    "profiles/"
+  ],
+  "excludedPaths": [
+    "docs/2026-08-11-201-Master-109-197完整迁移临时需求.md",
+    "docs/2026-08-11-Retail-Radar方案对抗式审查与会话交接.md",
+    "docs/2026-08-11-Retail-Radar生产级后端与智能值守补强方案.md",
+    "docs/meituan-h5-bulk-collection-defense-evaluation-20260707.md",
+    "docs/meituan-risk-control-investigation-20260706.md",
+    "docs/production-closure-checklist-20260708.md",
+    "docs/production-verification-20260710.md",
+    "docs/production-verification-20260715.md",
+    "docs/stage-one-two-store-weekly-runbook.md"
+  ]
+}

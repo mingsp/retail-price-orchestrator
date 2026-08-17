@@ -1,0 +1,33 @@
+groups:
+  - name: retail-radar-p0
+    rules:
+      - alert: RetailRadarWorkerHeartbeatStale
+        expr: retail_orchestrator_oldest_worker_heartbeat_seconds > 120
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "采集设备状态超过 2 分钟未更新"
+      - alert: RetailRadarNotificationDeadLetter
+        expr: retail_orchestrator_notification_dead_letters > 0 or retail_orchestrator_notification_outcome_unknown > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "人工介入通知存在未确认结果"
+      - alert: RetailRadarInvalidRawArtifact
+        expr: retail_orchestrator_invalid_artifacts > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "原始数据产物缺少校验和或对象版本"
+      - alert: RetailRadarUnfrozenScope
+        expr: retail_orchestrator_active_runs_without_scope > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "活动采集批次未冻结目标类目范围"
+      - alert: RetailRadarRiskWaitingTooLong
+        expr: retail_orchestrator_oldest_open_risk_seconds > 900
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "人工处理事项等待超过 15 分钟"

@@ -1,0 +1,199 @@
+name: retail-radar
+
+services:
+  caddy:
+    image: caddy:2.10.0-alpine
+    restart: unless-stopped
+    environment:
+      MASTER_HOSTNAME: ${MASTER_HOSTNAME:?Set MASTER_HOSTNAME to the LAN DNS name or fixed IP}
+      OPERATOR_TOKEN: ${OPERATOR_TOKEN:?Set the internal Dashboard operator token}
+    ports:
+      - "2808:2808"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../deploy/release/public:/srv/releases:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      master:
+        condition: service_healthy
+      dashboard:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: deploy/docker/dashboard.Dockerfile
+      args:
+        VITE_MASTER_BASE_URL: ${MASTER_PUBLIC_BASE_URL:?Set MASTER_PUBLIC_BASE_URL to the Caddy HTTPS URL}
+        NODE_BASE_IMAGE: ${NODE_BASE_IMAGE:-node:22.14.0-bookworm-slim}
+        NGINX_BASE_IMAGE: ${NGINX_BASE_IMAGE:-nginx:1.27.3-alpine}
+    image: retail-radar-dashboard:${RETAIL_RADAR_VERSION:?Set RETAIL_RADAR_VERSION}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/container-health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - frontend
+
+  master:
+    build:
+      context: ..
+      dockerfile: deploy/docker/master.Dockerfile
+      args:
+        NODE_BASE_IMAGE: ${NODE_BASE_IMAGE:-node:22.14.0-bookworm-slim}
+        RETAIL_RADAR_VERSION: ${RETAIL_RADAR_VERSION:?Set RETAIL_RADAR_VERSION}
+        RETAIL_RADAR_GIT_SHA: ${RETAIL_RADAR_GIT_SHA:?Set RETAIL_RADAR_GIT_SHA}
+        RETAIL_RADAR_BUILT_AT: ${RETAIL_RADAR_BUILT_AT:?Set RETAIL_RADAR_BUILT_AT}
+        RETAIL_RADAR_SCHEMA_VERSION: ${RETAIL_RADAR_SCHEMA_VERSION:-2026-08-17-p0.1}
+    image: retail-radar-master:${RETAIL_RADAR_VERSION:?Set RETAIL_RADAR_VERSION}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      MASTER_PORT: "17890"
+      MASTER_PUBLIC_BASE_URL: ${MASTER_PUBLIC_BASE_URL:?Set MASTER_PUBLIC_BASE_URL to the Caddy HTTPS URL}
+      DATABASE_URL: ${DATABASE_URL:?Set an encoded PostgreSQL connection URL}
+      REDIS_URL: ${REDIS_URL:?Set a password-protected Redis connection URL}
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: ${MASTER_PUBLIC_BASE_URL:?Set MASTER_PUBLIC_BASE_URL to the Caddy HTTPS URL}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_FORCE_PATH_STYLE: "true"
+      WORKER_SHARED_TOKEN: ${WORKER_SHARED_TOKEN:?Set a random legacy token even when legacy access is disabled}
+      ALLOW_LEGACY_WORKER_SHARED_TOKEN: "false"
+      AUTOMATION_TOKEN: ${AUTOMATION_TOKEN:?Set the Master Codex automation token}
+      OPERATOR_TOKEN: ${OPERATOR_TOKEN:?Set the Dashboard operator token}
+      REGISTRY_SYNC_TOKEN: ${REGISTRY_SYNC_TOKEN:?Set the dedicated registry sync token}
+      REGISTRY_SCHEMA_HASH: ${REGISTRY_SCHEMA_HASH:?Set the deployed DingTalk registry schema hash}
+      OPERATOR_ALLOWED_ORIGINS: ${OPERATOR_ALLOWED_ORIGINS:-}
+      DINGTALK_WEBHOOK_URL: ${DINGTALK_WEBHOOK_URL:?Set the DingTalk robot webhook URL}
+      RETAIL_RADAR_SCHEMA_VERSION: ${RETAIL_RADAR_SCHEMA_VERSION:-2026-08-17-p0.1}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:17890/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+
+  postgres:
+    image: postgres:16.9-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-retail}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-retail_orchestrator}
+    volumes:
+      - retail_postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - backend
+
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command: ["sh", "-c", "exec redis-server --appendonly yes --appendfsync everysec --requirepass \"$${REDIS_PASSWORD}\""]
+    volumes:
+      - retail_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" --no-auth-warning ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - backend
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+    volumes:
+      - retail_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - backend
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      master:
+        condition: service_healthy
+    networks:
+      - backend
+
+  rustdesk-hbbs:
+    profiles: ["remote-desktop"]
+    image: ${RUSTDESK_SERVER_IMAGE:-rustdesk/rustdesk-server:1.1.14}
+    command: hbbs -r rustdesk-hbbr:21117
+    restart: unless-stopped
+    ports:
+      - "21115:21115/tcp"
+      - "21116:21116/tcp"
+      - "21116:21116/udp"
+    volumes:
+      - rustdesk_data:/root
+    networks:
+      - remote_desktop
+
+  rustdesk-hbbr:
+    profiles: ["remote-desktop"]
+    image: ${RUSTDESK_SERVER_IMAGE:-rustdesk/rustdesk-server:1.1.14}
+    command: hbbr
+    restart: unless-stopped
+    ports:
+      - "21117:21117/tcp"
+    volumes:
+      - rustdesk_data:/root
+    networks:
+      - remote_desktop
+
+networks:
+  frontend:
+  backend:
+    internal: true
+  remote_desktop:
+
+volumes:
+  caddy_data:
+  caddy_config:
+  retail_postgres_data:
+  retail_redis_data:
+  retail_minio_data:
+  rustdesk_data:
+  prometheus_data:

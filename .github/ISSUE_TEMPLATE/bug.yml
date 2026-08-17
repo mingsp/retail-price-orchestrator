@@ -1,0 +1,39 @@
+name: 缺陷报告
+description: 报告可复现的系统缺陷，不要粘贴生产凭据或真实账号信息
+title: "[缺陷] "
+labels: ["缺陷"]
+body:
+  - type: markdown
+    attributes:
+      value: "请先移除完整手机号、Cookie、Token、Webhook、生产 URL 和真实采集数据。"
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 业务现象
+      description: 使用业务语言说明发生了什么。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 最小复现步骤
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏证据
+      description: 可提供测试输出或脱敏日志，不要提供秘密或个人信息。
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我确认内容中不包含凭据、完整手机号、Cookie、生产 URL 或真实采集数据
+          required: true

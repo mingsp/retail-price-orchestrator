@@ -1,0 +1,24 @@
+name: 文档改进
+description: 补充上手、部署、采集、风险处理或验收说明
+title: "[文档] "
+labels: ["文档"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: 文档位置
+      placeholder: docs/handoff/...
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 当前不清楚的地方
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 建议内容
+    validations:
+      required: true

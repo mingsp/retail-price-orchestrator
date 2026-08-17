@@ -1,18 +1,46 @@
 # Retail Price Orchestrator Requirements
 
-Last updated: 2026-07-06
+Last updated: 2026-08-13
 
 ## 1. Business Objective
 
 Build a long-running distributed collection control system for authorized retail price monitoring.
 
+## 1.1 Current Business Scope Updated 2026-07-08
+
+Final target is weekly front-end price monitoring for 6 stores:
+
+| Pair | Competitor Store | Own Store |
+|---|---|---|
+| 1 | 乐购达超市（景耀店） | 呱呱超市（莲湖店） |
+| 2 | 犀牛百货（西门店） | 呱呱超市（南门店） |
+| 3 | 小柴购超市（小寨店） | 呱呱超市（雁塔店） |
+
+Current stage-one target is weekly full-store collection for 2 stores:
+
+- 乐购达超市（景耀店）
+- 呱呱超市（莲湖店）
+
+The current production run uses 6 accounts: 3 fixed category assignments per store. Spare accounts remain in the account pool and must bind to a fresh browser profile before replacement.
+
+The primary business price field is the user-facing H5 front-end display price, not merchant backend price. Merchant backend data can be used for internal reference, but competitor comparison must use the same front-end collection口径 for competitor stores and 呱呱 stores.
+
+### 1.2 Category-Product Completeness Rule Updated 2026-08-13
+
+- The collection target is the category-product relationship, not only a globally unique store product list.
+- A product appearing under two categories must remain as two category-product relationships in raw data, structured snapshots, database queries, and Excel exports.
+- Every account must persist the concrete product ID list it observed for each category. A count without the corresponding IDs is not completion evidence.
+- Category completeness across multiple accounts uses the union of all observed category product IDs. It must not use one account's count or the largest single-account count as the target.
+- Raw account/category/product observations remain append-only. Idempotency may suppress an exact task replay of the same relationship, but it must never remove a relationship across accounts or categories.
+- A category is complete only when every ID in the observed multi-account union has a durable raw category-product row. Any missing union member blocks complete import and delivery.
+
 The current deployment has three devices:
 
 | Device | Role | Notes |
 |---|---|---|
-| `xf` | master + worker | central scheduler, dashboard, data collector, and one local worker |
-| `mm` | worker | current Windows device |
+| `mm` | master + worker | current Windows device, central scheduler, dashboard and local worker |
 | `jl` | worker | Mac laptop |
+| `xf` | reserved worker | not used in the current two-store run |
 
 The system must scale beyond the current three devices. New workers, accounts, profiles, and stores should be added through configuration and dashboard workflows, not ad hoc manual coordination.
 
@@ -32,12 +60,27 @@ Phase 1 must deliver:
 - Dashboard worker status page.
 - No real store data or credentials committed to Git.
 
-### 2.2 Long-Term Outcome
+### 2.2 Stage-One Outcome
+
+The stage-one system must support:
+
+- two weekly store runs: 犀牛百货（西门店） and 呱呱超市（南门店）
+- 7-account resource pool
+- account/profile/CDP ownership visibility
+- category-task planning and assignment
+- risk event queue and DingTalk notification
+- raw artifact registration
+- price quality checks for user-facing display price
+- colleague-facing business Excel exports without machine-only fields
+
+### 2.3 Long-Term Outcome
 
 The full system must support:
 
 - multi-device collection
 - multi-account scheduling
+- 6-store weekly monitoring
+- competitor-vs-own-store price comparison
 - account/profile risk tracking
 - store/category task assignment
 - human-in-the-loop verification handling
@@ -210,4 +253,3 @@ Product names must remain exactly as collected in raw data. Export jobs must val
 | 6 | Collection integration | wrap existing CDP collection scripts as worker tasks |
 | 7 | Dashboard operations | full operator console |
 | 8 | Scaling hardening | auth, RBAC, metrics, HA, backup, deployment automation |
-

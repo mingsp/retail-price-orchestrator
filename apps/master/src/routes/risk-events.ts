@@ -1,13 +1,19 @@
 import type { RiskEventPayload, RiskEventRecord } from "@retail-orchestrator/shared";
 import type { FastifyInstance } from "fastify";
 import type { Pool } from "pg";
-import { notifyRiskEvent } from "../notifications.js";
-import { insertRiskEvent, listRiskEvents, updateRiskEventStatus } from "../repositories/risk-events.js";
-import { broadcastDashboard } from "../ws/dashboard-gateway.js";
+import { queueRiskEventNotification } from "../notifications.js";
+import { insertOperationEvent } from "../repositories/operation-events.js";
+import { insertRiskEvent, listRiskClusters, listRiskEvents, updateRiskEventStatus } from "../repositories/risk-events.js";
+import { operatorActor } from "./operation-events.js";
+import type { DashboardEventBus } from "../dashboard-event-bus.js";
 
-export function registerRiskEventRoutes(app: FastifyInstance, db: Pool, dingtalkWebhookUrl?: string): void {
+export function registerRiskEventRoutes(app: FastifyInstance, db: Pool, dashboardEvents: DashboardEventBus, dingtalkWebhookUrl?: string): void {
   app.get("/api/risk-events", async () => {
     return { riskEvents: await listRiskEvents(db) };
+  });
+
+  app.get("/api/risk-clusters", async () => {
+    return { riskClusters: await listRiskClusters(db) };
   });
 
   app.post<{ Body: RiskEventPayload["event"] }>("/api/risk-events", async (request) => {
@@ -16,10 +22,8 @@ export function registerRiskEventRoutes(app: FastifyInstance, db: Pool, dingtalk
       sentAt: new Date().toISOString(),
       event: request.body
     });
-    broadcastDashboard({ type: "risk.created", sentAt: new Date().toISOString(), risk });
-    notifyRiskEvent(dingtalkWebhookUrl, risk).catch((error) => {
-      app.log.error({ error, riskId: risk.riskId }, "failed to send risk notification");
-    });
+    dashboardEvents.emit({ type: "risk.created", sentAt: new Date().toISOString(), risk });
+    await queueRiskEventNotification(db, Boolean(dingtalkWebhookUrl), risk);
     return { risk };
   });
 
@@ -31,6 +35,22 @@ export function registerRiskEventRoutes(app: FastifyInstance, db: Pool, dingtalk
       }
       const risk = await updateRiskEventStatus(db, request.params.riskId, request.body.status);
       if (!risk) return reply.code(404).send({ error: "risk_event_not_found" });
+      await insertOperationEvent(db, {
+        actor: operatorActor(request),
+        action: `risk.${request.body.status}`,
+        targetType: "risk",
+        targetId: risk.riskId,
+        riskId: risk.riskId,
+        workerId: risk.workerId,
+        accountId: risk.accountId,
+        profileId: risk.profileId,
+        storeId: risk.storeId,
+        detail: {
+          riskType: risk.riskType,
+          severity: risk.severity,
+          status: risk.status
+        }
+      });
       return { risk };
     }
   );

@@ -1,0 +1,30 @@
+{
+  "release": {
+    "tag": "v0.2.0",
+    "commit": "<40_HEX_GIT_COMMIT>",
+    "schemaVersion": "2026-08-17-p0.1"
+  },
+  "operator": "<OPERATOR_NAME>",
+  "reviewer": "<REVIEWER_NAME>",
+  "level": "L4",
+  "completedAt": "<ISO_8601_TIMESTAMP>",
+  "gates": {
+    "offlineVerification": true,
+    "bindingVerified": true,
+    "canaryCompleted": true,
+    "riskInterventionCompleted": true,
+    "checkpointResumeCompleted": true,
+    "fullStoreRunCompleted": true,
+    "rawArtifactTraceability": true,
+    "databaseAndExcelTraceability": true,
+    "rollbackTargetVerified": true
+  },
+  "evidence": [
+    {
+      "id": "<EVIDENCE_ID>",
+      "type": "run_report",
+      "reference": "<INTERNAL_EVIDENCE_REFERENCE>",
+      "sha256": "<64_HEX_SHA256>"
+    }
+  ]
+}

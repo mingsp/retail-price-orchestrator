@@ -1,0 +1,30 @@
+*
+# Never send runtime/browser credentials to any Docker builder.
+.runtime/
+**/.runtime/
+**/Cookies
+**/Cookies-journal
+**/Login Data
+**/Login Data-journal
+**/*token*
+**/*.local
+.env
+.env.*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!apps/
+!apps/master/
+!apps/master/**
+!apps/dashboard/
+!apps/dashboard/**
+!apps/worker/
+!apps/worker/package.json
+!packages/
+!packages/shared/
+!packages/shared/**
+!deploy/
+!deploy/docker/
+!deploy/docker/**
+**/node_modules/
+**/dist/

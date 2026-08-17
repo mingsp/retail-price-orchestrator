@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "storage": "COPY_OUTSIDE_PROJECT_AND_KEEP_PRIVATE",
+  "accounts": [
+    {
+      "accountId": "sample-account-01",
+      "accountAlias": "sample-account-01",
+      "fullLoginPhone": "<FULL_LOGIN_PHONE>",
+      "maskedLogin": "138****0000",
+      "operatorOwner": "<OPERATOR_OWNER>",
+      "workerId": "sample-worker-01",
+      "browserSlotId": "sample-slot-01",
+      "profileId": "sample-profile-01",
+      "targetStoreId": "sample-store-01",
+      "status": "available",
+      "updatedAt": "<UPDATED_AT>"
+    }
+  ]
+}

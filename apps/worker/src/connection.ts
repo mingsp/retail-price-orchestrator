@@ -14,22 +14,42 @@ export function startWorkerConnection(config: WorkerConfig): void {
 
     const ws = new WebSocket(url, {
       headers: {
-        Authorization: `Bearer ${config.workerSharedToken}`
+        Authorization: `Bearer ${config.workerToken}`
       }
     });
+    let lastHeartbeatSentAt = 0;
 
     ws.on("open", () => {
       reconnectAttempt = 0;
       ws.send(JSON.stringify(buildRegister(config)));
-      heartbeatTimer = setInterval(() => {
+      const sendHeartbeat = () => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify(buildHeartbeat(config)));
+          lastHeartbeatSentAt = Date.now();
+          buildHeartbeat(config)
+            .then((heartbeat) => {
+              if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(heartbeat));
+            })
+            .catch((error) => {
+              console.error("[worker] failed to build heartbeat", error.message);
+            });
         }
-      }, config.heartbeatIntervalMs);
+      };
+      sendHeartbeat();
+      heartbeatTimer = setInterval(sendHeartbeat, config.heartbeatIntervalMs);
     });
 
     ws.on("message", (raw) => {
-      console.log(`[master] ${String(raw)}`);
+      const text = String(raw);
+      try {
+        const message = JSON.parse(text) as { type?: string; receivedAt?: string };
+        if (message.type === "master.heartbeat_ack" && message.receivedAt && lastHeartbeatSentAt > 0) {
+          const midpoint = lastHeartbeatSentAt + (Date.now() - lastHeartbeatSentAt) / 2;
+          config.worker.clockOffsetMs = Math.round(new Date(message.receivedAt).getTime() - midpoint);
+        }
+      } catch {
+        // The socket stays usable even if a future Master sends a non-JSON diagnostic frame.
+      }
+      console.log(`[master] ${text}`);
     });
 
     ws.on("close", () => {
@@ -51,4 +71,3 @@ export function startWorkerConnection(config: WorkerConfig): void {
 
   connect();
 }
-
