@@ -109,6 +109,9 @@ Browser Slot 重新验证，不能只相信文档。
 ```text
 请接管 Retail-Radar 66 独立单店节点。先只读核验，不创建任务、不启动 Chrome、不连接真实门店页面。
 
+固定项目根目录是 D:\SpanAI\retail-price-orchestrator。不要把
+C:\ProgramData\RetailRadar\Standalone\sources\<version> 当作 Codex 工作目录；后者只用于生产部署、回滚和取证。
+
 按顺序读取：
 1. 运行目录 handoff/CURRENT-HANDOFF.md
 2. HANDOFF_START_HERE.md

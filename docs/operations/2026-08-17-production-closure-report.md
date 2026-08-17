@@ -73,7 +73,7 @@ Retail-Radar 0.2.5 已完成本机 L0～L2 的 P0 数据真相、可靠恢复、
 ## 7. 当前生产状态与剩余现场项
 
 - GitHub 固定发布为 `v0.2.5` / `bc61bacf316ca6139973984fd6ed803537f3bb09`。
-- 201 的固定 Codex 项目入口为 `D:\SpanAI\retail-price-orchestrator`，后续升级不得改变；生产内部版本化源码位于 `D:\SpanAI\retail-radar-master\sources\v0.2.5`。66 的版本化源码位于 `C:\ProgramData\RetailRadar\Standalone\sources\v0.2.5`。
+- 201 和 66 的固定 Codex 项目入口均为 `D:\SpanAI\retail-price-orchestrator`，后续升级不得改变。201 的生产内部版本化源码位于 `D:\SpanAI\retail-radar-master\sources\v0.2.5`；66 的生产内部版本化源码位于 `C:\ProgramData\RetailRadar\Standalone\sources\v0.2.5`。
 - 两端均记录 `candidate_verified`、`activation=switched`、Node 22.14.0、pnpm 11.21.0；旧源码目录和旧镜像仍保留。
 - 两端 Master/Dashboard 已运行 `0.2.5`，`/ready` 和 `/api/version` 验证通过；201 的 4 个 Worker 和 10 个 CDP 席位已重新连接。
 - PostgreSQL/MinIO 备份、哈希、旧镜像和切换后数据对账见 `docs/operations/2026-08-17-github-66-201-release-handoff.md`。
