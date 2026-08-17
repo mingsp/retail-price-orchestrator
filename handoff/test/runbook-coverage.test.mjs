@@ -8,6 +8,9 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const privateOperationsAvailable = await fs.access(
   path.join(repoRoot, "docs", "operations", "66-final-handoff.md")
 ).then(() => true, () => false);
+const private201OperationsAvailable = await fs.access(
+  path.join(repoRoot, "docs", "operations", "201-master-current-handoff-20260817.md")
+).then(() => true, () => false);
 
 test("handoff runbook covers account risk, profile replacement, login, and recovery", async () => {
   const runbook = await fs.readFile(
@@ -242,4 +245,42 @@ test("66 single-store execution handoff preserves collection truth and safe reco
   }
 
   assert.ok(publicManifest.excludedPrefixes.includes("docs/operations/"));
+});
+
+test("201 master handoff separates source from runtime and preserves production gates", {
+  skip: private201OperationsAvailable ? false : "private 201 operations documents are intentionally absent"
+}, async () => {
+  const currentHandoff = await fs.readFile(
+    path.join(repoRoot, "docs", "operations", "201-master-current-handoff-20260817.md"),
+    "utf8"
+  );
+  const completePrompt = await fs.readFile(
+    path.join(repoRoot, "docs", "operations", "201-master-codex-complete-prompt.md"),
+    "utf8"
+  );
+  const startupPrompt = await fs.readFile(
+    path.join(repoRoot, "docs", "operations", "201-codex-startup-prompt.md"),
+    "utf8"
+  );
+  const all = `${currentHandoff}\n${completePrompt}\n${startupPrompt}`;
+
+  for (const concept of [
+    "D:\\SpanAI\\retail-price-orchestrator",
+    "D:\\SpanAI\\retail-radar-master\\app",
+    "只负责呱呱超市（昆明路店）和犀牛百货（科技路店）",
+    "小柴购超市（甘家寨店）属于 66 独立节点",
+    "每个门店默认准备约 5 个授权账号",
+    "常驻标识页 + 美团登录页",
+    "登录成功后才打开目标门店",
+    "先修改并保存标识页",
+    "DWS 实时读取",
+    "第一阶段：理解",
+    "第二阶段：只读接管",
+    "当前不授权真实采集"
+  ]) {
+    assert.match(all, new RegExp(concept.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  assert.doesNotMatch(all, /access_token=[A-Za-z0-9_-]{16,}/i);
+  assert.doesNotMatch(all, /(?:^|[^*])1[3-9]\d{9}(?:$|[^\d])/m);
 });
