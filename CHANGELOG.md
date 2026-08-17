@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.13] - 2026-08-17
+
+### 观测服务激活门禁
+
+- Alertmanager 机密配置继续限制为 SYSTEM、管理员和当前 Docker Desktop 用户，Docker 用户仅获得该文件只读权限。
+- Prometheus 与 Alertmanager 增加真实健康检查；任一观测服务未就绪时，候选版本不得切换生产启动入口。
+
 ## [0.2.12] - 2026-08-17
 
 ### PowerShell 5.1 路径兼容

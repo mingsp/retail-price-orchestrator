@@ -33,6 +33,24 @@ function Protect-SecretFile {
   Protect-RetailRadarPath -Path $Path
 }
 
+function Grant-DockerDesktopReadAccess {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  $owners = @(
+    Get-Process -Name 'com.docker.backend' -IncludeUserName -ErrorAction SilentlyContinue |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_.UserName) } |
+      Select-Object -ExpandProperty UserName -Unique
+  )
+  if ($owners.Count -ne 1) {
+    throw 'Exactly one running Docker Desktop user is required to protect the Alertmanager configuration'
+  }
+
+  $account = New-Object Security.Principal.NTAccount($owners[0])
+  $sid = $account.Translate([Security.Principal.SecurityIdentifier]).Value
+  & icacls.exe $Path /grant:r "*$sid`:(R)" | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'Failed to grant Docker Desktop read access to the Alertmanager configuration' }
+}
+
 function Set-EnvValue {
   param([string]$Path, [string]$Name, [string]$Value)
   $lines = [Collections.Generic.List[string]](Get-Content -LiteralPath $Path)
@@ -68,6 +86,7 @@ $rendered = (Get-Content -LiteralPath $TemplatePath -Raw).Replace('__MONITORING_
 if ($rendered -match '__MONITORING_ALERT_TOKEN__') { throw "Alertmanager token rendering failed" }
 $rendered | Set-Content -LiteralPath $OutputConfigPath -Encoding UTF8
 Protect-SecretFile -Path $OutputConfigPath
+Grant-DockerDesktopReadAccess -Path $OutputConfigPath
 
 $normalizedOutput = (Resolve-Path -LiteralPath $OutputConfigPath).Path
 Set-EnvValue -Path $ProductionEnvPath -Name 'ALERTMANAGER_CONFIG_PATH' -Value $normalizedOutput
@@ -76,4 +95,5 @@ Set-EnvValue -Path $ProductionEnvPath -Name 'ALERTMANAGER_CONFIG_PATH' -Value $n
   Configured = $true
   ConfigPath = $normalizedOutput
   TokenPresent = $true
+  DockerAccessConfigured = $true
 } | ConvertTo-Json -Compress

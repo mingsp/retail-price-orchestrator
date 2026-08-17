@@ -118,6 +118,25 @@ do {
 } while (-not $ready -and (Get-Date) -lt $readyDeadline)
 if (-not $ready) { throw 'Master readiness endpoint did not become healthy before timeout' }
 
+if ($EnableObservability) {
+    $observabilityDeadline = (Get-Date).AddSeconds($ReadyTimeoutSeconds)
+    $observabilityReady = $false
+    do {
+        try {
+            $prometheusId = (Invoke-Docker @composeBase ps --quiet prometheus | Select-Object -First 1).ToString().Trim()
+            $alertmanagerId = (Invoke-Docker @composeBase ps --quiet alertmanager | Select-Object -First 1).ToString().Trim()
+            if (-not $prometheusId -or -not $alertmanagerId) { throw 'Observability container is missing' }
+            Invoke-Docker exec $prometheusId /bin/wget -qO- http://127.0.0.1:9090/-/ready | Out-Null
+            Invoke-Docker exec $alertmanagerId /bin/amtool --alertmanager.url=http://127.0.0.1:9093 alert query | Out-Null
+            $observabilityReady = $true
+        } catch {
+            Start-Sleep -Seconds 5
+        }
+    } while (-not $observabilityReady -and (Get-Date) -lt $observabilityDeadline)
+    if (-not $observabilityReady) { throw 'Observability services did not become healthy before timeout' }
+    Write-Trace 'observability_ready'
+}
+
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $certificatePath) | Out-Null
 Push-Location $project
 try {

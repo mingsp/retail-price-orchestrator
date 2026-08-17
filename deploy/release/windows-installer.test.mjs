@@ -163,6 +163,9 @@ test("Standalone startup uses the repository-pinned Node runtime", async () => {
   assert.match(source, /\$corepackPath pnpm deploy:validate/);
   assert.match(source, /\$env:CI = 'true'/);
   assert.match(source, /--resolve \$localResolve "\$\{localMasterUrl\}\/ready"/);
+  assert.match(source, /http:\/\/127\.0\.0\.1:9090\/\-\/ready/);
+  assert.match(source, /--alertmanager\.url=http:\/\/127\.0\.0\.1:9093 alert query/);
+  assert.match(source, /Observability services did not become healthy before timeout/);
   assert.doesNotMatch(source, /https:\/\/127\.0\.0\.1:2808\/ready/);
   assert.doesNotMatch(source, /& corepack pnpm/);
 });
@@ -223,4 +226,7 @@ test("SYSTEM-run production scripts protect files by SID instead of the machine-
     assert.match(source, /Protect-RetailRadarPath/);
     assert.doesNotMatch(source, /env:USERNAME/);
   }
+  assert.match(observability, /com\.docker\.backend/);
+  assert.match(observability, /SecurityIdentifier/);
+  assert.match(observability, /\*\$sid`:\(R\)/);
 });
