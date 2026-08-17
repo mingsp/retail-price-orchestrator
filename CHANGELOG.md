@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.3] - 2026-08-17
+
+### 工具链冻结
+
+- 候选版本必须使用 `.node-version` 指定的 Node.js 和 `packageManager` 指定的 pnpm，任一版本漂移立即阻断。
+- 候选验证清单记录实际 Node.js/pnpm 版本，便于 66、201 和后续 Worker 审计复现。
+
 ## [0.2.2] - 2026-08-17
 
 ### 交接兼容

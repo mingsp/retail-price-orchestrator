@@ -49,6 +49,7 @@ function Invoke-PinnedPnpm {
 }
 
 $gitCommand = Resolve-RequiredCommand -Names @('git.exe', 'git')
+$nodeCommand = Resolve-RequiredCommand -Names @('node.exe', 'node')
 $corepackCommand = Resolve-OptionalCommand -Names @('corepack.exe', 'corepack.cmd', 'corepack')
 $pnpmCommand = Resolve-OptionalCommand -Names @('pnpm.exe', 'pnpm.cmd', 'pnpm')
 if (-not $corepackCommand -and -not $pnpmCommand) {
@@ -76,8 +77,21 @@ try {
     Push-Location $staging
     try {
         $packageMetadata = Get-Content -LiteralPath (Join-Path $staging 'package.json') -Raw | ConvertFrom-Json
+        $requiredNodeVersion = (Get-Content -LiteralPath (Join-Path $staging '.node-version') -Raw).Trim()
+        $actualNodeVersion = (& $nodeCommand --version).Trim().TrimStart('v')
+        if ($LASTEXITCODE -ne 0 -or $actualNodeVersion -ne $requiredNodeVersion) {
+            throw "Node.js version mismatch: expected $requiredNodeVersion, got $actualNodeVersion"
+        }
         $requiredPnpmVersion = ([string]$packageMetadata.packageManager) -replace '^pnpm@', ''
         if (-not $requiredPnpmVersion) { throw 'packageManager must pin an exact pnpm version' }
+        $actualPnpmVersion = if ($corepackCommand) {
+            (& $corepackCommand pnpm --version).Trim()
+        } else {
+            (& $pnpmCommand --version).Trim()
+        }
+        if ($LASTEXITCODE -ne 0 -or $actualPnpmVersion -ne $requiredPnpmVersion) {
+            throw "pnpm version mismatch: expected $requiredPnpmVersion, got $actualPnpmVersion"
+        }
         Invoke-PinnedPnpm -Arguments @('install', '--frozen-lockfile') -RequiredVersion $requiredPnpmVersion
         Invoke-PinnedPnpm -Arguments @('handoff:test') -RequiredVersion $requiredPnpmVersion
         Invoke-PinnedPnpm -Arguments @('typecheck') -RequiredVersion $requiredPnpmVersion
@@ -92,6 +106,8 @@ try {
         status = 'candidate_verified'
         activation = 'not_switched'
         previousDeploymentPreserved = $true
+        nodeVersion = $actualNodeVersion
+        pnpmVersion = $actualPnpmVersion
     }
     [IO.File]::WriteAllText(
         (Join-Path $staging 'candidate-verification.json'),

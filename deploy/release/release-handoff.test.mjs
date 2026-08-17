@@ -10,6 +10,9 @@ test("source handoff is pinned, verified, and never switches the running deploym
   assert.match(source, /'corepack\.exe', 'corepack\.cmd', 'corepack'/);
   assert.match(source, /'pnpm\.exe', 'pnpm\.cmd', 'pnpm'/);
   assert.match(source, /pnpm version mismatch/);
+  assert.match(source, /Node\.js version mismatch/);
+  assert.match(source, /nodeVersion = \$actualNodeVersion/);
+  assert.match(source, /pnpmVersion = \$actualPnpmVersion/);
   assert.match(source, /packageMetadata\.packageManager/);
   assert.doesNotMatch(source, /corepack\.exe enable/);
   assert.match(source, /rev-list -n 1/);
