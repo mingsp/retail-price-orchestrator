@@ -15,6 +15,7 @@ const workerResourcePolicyUrl = new URL("../windows/configure-worker-resource-po
 const standaloneLauncherUrl = new URL("../windows/start-standalone-node.ps1", import.meta.url);
 const standaloneActivationUrl = new URL("../windows/activate-standalone-candidate.ps1", import.meta.url);
 const masterBackupUrl = new URL("../windows/backup-master.ps1", import.meta.url);
+const versionedSourcePreparationUrl = new URL("../windows/prepare-versioned-source.ps1", import.meta.url);
 
 test("Windows installer registers the interactive CDP helper with the resolved Windows identity", async () => {
   const installer = await readFile(installerUrl, "utf8");
@@ -183,4 +184,15 @@ test("Master backup includes the protected standalone environment", async () => 
   const source = await readFile(masterBackupUrl, "utf8");
   assert.match(source, /config\\\.env\.production/);
   assert.match(source, /standalone\.env\.production/);
+});
+
+test("Versioned source preparation judges native commands by exit code under redirected logging", async () => {
+  const source = await readFile(versionedSourcePreparationUrl, "utf8");
+
+  assert.match(source, /function Invoke-NativeCommand/);
+  assert.match(source, /\$ErrorActionPreference = 'Continue'/);
+  assert.match(source, /\$exitCode = \$LASTEXITCODE/);
+  assert.match(source, /Invoke-NativeCommand -Command \$gitCommand/);
+  assert.match(source, /Invoke-NativeCommand -Command \$script:corepackCommand/);
+  assert.doesNotMatch(source, /& \$gitCommand clone/);
 });

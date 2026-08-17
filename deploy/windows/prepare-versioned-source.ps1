@@ -29,6 +29,29 @@ function Resolve-OptionalCommand {
     return $null
 }
 
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$Command,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$FailureMessage
+    )
+
+    $previousPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 converts native stderr into ErrorRecord objects
+        # when a caller redirects the script output. Exit code remains authoritative.
+        $ErrorActionPreference = 'Continue'
+        $output = @(& $Command @Arguments 2>&1)
+        $exitCode = $LASTEXITCODE
+    }
+    finally { $ErrorActionPreference = $previousPreference }
+    if ($exitCode -ne 0) {
+        $details = ($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+        throw "$FailureMessage`n$details"
+    }
+    return $output
+}
+
 function Invoke-PinnedPnpm {
     param(
         [Parameter(Mandatory = $true)][string[]]$Arguments,
@@ -36,16 +59,14 @@ function Invoke-PinnedPnpm {
     )
 
     if ($script:corepackCommand) {
-        & $script:corepackCommand pnpm @Arguments
-    }
-    else {
-        $actualVersion = (& $script:pnpmCommand --version).Trim()
-        if ($LASTEXITCODE -ne 0 -or $actualVersion -ne $RequiredVersion) {
+        Invoke-NativeCommand -Command $script:corepackCommand -Arguments (@('pnpm') + $Arguments) -FailureMessage "pnpm command failed: $($Arguments -join ' ')"
+    } else {
+        $actualVersion = ((Invoke-NativeCommand -Command $script:pnpmCommand -Arguments @('--version') -FailureMessage 'pnpm version check failed') | Select-Object -Last 1).ToString().Trim()
+        if ($actualVersion -ne $RequiredVersion) {
             throw "pnpm version mismatch: expected $RequiredVersion, got $actualVersion"
         }
-        & $script:pnpmCommand @Arguments
+        Invoke-NativeCommand -Command $script:pnpmCommand -Arguments $Arguments -FailureMessage "pnpm command failed: $($Arguments -join ' ')"
     }
-    if ($LASTEXITCODE -ne 0) { throw "pnpm command failed: $($Arguments -join ' ')" }
 }
 
 $gitCommand = Resolve-RequiredCommand -Names @('git.exe', 'git')
@@ -64,32 +85,29 @@ if (Test-Path -LiteralPath $destination) { throw "Versioned source already exist
 New-Item -ItemType Directory -Force -Path $sourcesRoot | Out-Null
 
 try {
-    & $gitCommand clone --filter=blob:none --no-checkout $RepositoryUrl $staging
-    if ($LASTEXITCODE -ne 0) { throw 'Git clone failed' }
-    & $gitCommand -C $staging fetch --force origin "refs/tags/${Tag}:refs/tags/${Tag}"
-    if ($LASTEXITCODE -ne 0) { throw "Tag fetch failed: $Tag" }
-    $actualCommit = (& $gitCommand -C $staging rev-list -n 1 $Tag).Trim().ToLowerInvariant()
-    if ($LASTEXITCODE -ne 0 -or $actualCommit -ne $ExpectedCommit.ToLowerInvariant()) {
+    Invoke-NativeCommand -Command $gitCommand -Arguments @('clone', '--filter=blob:none', '--no-checkout', $RepositoryUrl, $staging) -FailureMessage 'Git clone failed'
+    Invoke-NativeCommand -Command $gitCommand -Arguments @('-C', $staging, 'fetch', '--force', 'origin', "refs/tags/${Tag}:refs/tags/${Tag}") -FailureMessage "Tag fetch failed: $Tag"
+    $actualCommit = ((Invoke-NativeCommand -Command $gitCommand -Arguments @('-C', $staging, 'rev-list', '-n', '1', $Tag) -FailureMessage 'Tag commit lookup failed') | Select-Object -Last 1).ToString().Trim().ToLowerInvariant()
+    if ($actualCommit -ne $ExpectedCommit.ToLowerInvariant()) {
         throw "Tag commit mismatch: expected $ExpectedCommit, got $actualCommit"
     }
-    & $gitCommand -C $staging checkout --detach $Tag
-    if ($LASTEXITCODE -ne 0) { throw 'Detached checkout failed' }
+    Invoke-NativeCommand -Command $gitCommand -Arguments @('-C', $staging, 'checkout', '--detach', $Tag) -FailureMessage 'Detached checkout failed'
     Push-Location $staging
     try {
         $packageMetadata = Get-Content -LiteralPath (Join-Path $staging 'package.json') -Raw | ConvertFrom-Json
         $requiredNodeVersion = (Get-Content -LiteralPath (Join-Path $staging '.node-version') -Raw).Trim()
-        $actualNodeVersion = (& $nodeCommand --version).Trim().TrimStart('v')
-        if ($LASTEXITCODE -ne 0 -or $actualNodeVersion -ne $requiredNodeVersion) {
+        $actualNodeVersion = ((Invoke-NativeCommand -Command $nodeCommand -Arguments @('--version') -FailureMessage 'Node.js version check failed') | Select-Object -Last 1).ToString().Trim().TrimStart('v')
+        if ($actualNodeVersion -ne $requiredNodeVersion) {
             throw "Node.js version mismatch: expected $requiredNodeVersion, got $actualNodeVersion"
         }
         $requiredPnpmVersion = ([string]$packageMetadata.packageManager) -replace '^pnpm@', ''
         if (-not $requiredPnpmVersion) { throw 'packageManager must pin an exact pnpm version' }
         $actualPnpmVersion = if ($corepackCommand) {
-            (& $corepackCommand pnpm --version).Trim()
+            ((Invoke-NativeCommand -Command $corepackCommand -Arguments @('pnpm', '--version') -FailureMessage 'Corepack pnpm version check failed') | Select-Object -Last 1).ToString().Trim()
         } else {
-            (& $pnpmCommand --version).Trim()
+            ((Invoke-NativeCommand -Command $pnpmCommand -Arguments @('--version') -FailureMessage 'pnpm version check failed') | Select-Object -Last 1).ToString().Trim()
         }
-        if ($LASTEXITCODE -ne 0 -or $actualPnpmVersion -ne $requiredPnpmVersion) {
+        if ($actualPnpmVersion -ne $requiredPnpmVersion) {
             throw "pnpm version mismatch: expected $requiredPnpmVersion, got $actualPnpmVersion"
         }
         Invoke-PinnedPnpm -Arguments @('install', '--frozen-lockfile') -RequiredVersion $requiredPnpmVersion

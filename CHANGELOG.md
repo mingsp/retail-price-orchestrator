@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.9] - 2026-08-17
+
+### Windows 可审计发布
+
+- 候选源码准备在 Windows PowerShell 5.1 下统一按原生命令退出码判定成败，Git 的正常 stderr 进度不再被日志重定向误判为失败。
+- Git、Node 与 pnpm/Corepack 复用同一受控原生命令封装，发布任务可保留完整日志并可靠传播真实失败。
+
 ## [0.2.8] - 2026-08-17
 
 ### 激活契约修复
