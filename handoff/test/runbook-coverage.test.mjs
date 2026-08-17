@@ -138,6 +138,10 @@ test("handoff requires a persistent identity page, account-change reminder and s
     "保存标识",
     "包外私密账号映射",
     "Codex 必须在当前直接任务中明确提醒",
+    "单个全量门店默认按约 5 个授权账号",
+    "只打开常驻标识页和美团登录页",
+    "登录成功后才打开目标门店",
+    "账号更换时必须先修改并保存标识页",
     "locationPreflight",
     "actualLat/actualLng",
     "位置通过前不得搜索目标门店"
@@ -217,6 +221,9 @@ test("66 single-store execution handoff preserves collection truth and safe reco
     "不得把轮换账号、Profile 或网络当作绕过访问限制的手段",
     "LangGraph 不进入核心采集主链路",
     "公开仓库不包含 66 私有运维事实",
+    "单门店默认准备约 5 个授权账号",
+    "每个席位只打开“CDP 标识页 + 美团登录页”",
+    "中途换号必须先暂停该席位并保存 checkpoint",
     "原始 JSONL"
   ]) {
     assert.match(executionHandoff, new RegExp(concept.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -225,6 +232,9 @@ test("66 single-store execution handoff preserves collection truth and safe reco
   for (const concept of [
     "第一阶段：理解",
     "第二阶段：开始执行",
+    "D:\\SpanAI\\retail-price-orchestrator",
+    "每个 CDP 初始只打开标识页和美团登录页",
+    "中途更换账号时，必须先暂停并保存 checkpoint",
     "未满足门禁时不得创建真实采集任务",
     "先输出理解摘要"
   ]) {
