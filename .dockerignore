@@ -23,6 +23,10 @@
 !packages/
 !packages/shared/
 !packages/shared/**
+!scripts/
+!scripts/lib/
+!scripts/lib/category-union-evidence.mjs
+!scripts/lib/category-union-evidence.d.mts
 !deploy/
 !deploy/docker/
 !deploy/docker/**

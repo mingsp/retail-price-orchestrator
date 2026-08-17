@@ -143,6 +143,8 @@ expect(paths.compose, serviceBlock(compose, "master"), /S3_PUBLIC_ENDPOINT:\s*\$
 for (const pattern of [/\.runtime\//i, /Cookies/i, /Login Data/i, /token/i]) {
   expect(paths.dockerignore, entries.dockerignore, pattern, `root .dockerignore must exclude ${pattern}`);
 }
+expect(paths.dockerignore, entries.dockerignore, /!scripts\/lib\/category-union-evidence\.mjs/, "Docker context must include the category-union module required by the Master build");
+expect(paths.dockerignore, entries.dockerignore, /!scripts\/lib\/category-union-evidence\.d\.mts/, "Docker context must include the category-union type declaration required by the Master build");
 expect(paths.gitignore, entries.gitignore, /(?:^|\n)\.runtime\/\r?$/m, "Git must ignore local runtime state and Chrome profiles");
 
 for (const [key, label] of [["masterDockerfile", "Master"], ["dashboardDockerfile", "Dashboard"]]) {
@@ -152,6 +154,8 @@ for (const [key, label] of [["masterDockerfile", "Master"], ["dashboardDockerfil
 expect(paths.masterDockerfile, entries.masterDockerfile, /packages\/shared\/dist/, "Master runtime image must copy the compiled shared package");
 expect(paths.masterDockerfile, entries.masterDockerfile, /@retail-orchestrator\/shared[^\n]*(?:build|exec\s+tsc)/i, "Master image must compile @retail-orchestrator/shared");
 expect(paths.masterDockerfile, entries.masterDockerfile, /packages\/shared\/package\.json/, "Master runtime image must include a runnable shared package manifest");
+expect(paths.masterDockerfile, entries.masterDockerfile, /COPY\s+scripts\/lib\/category-union-evidence\.mjs\s+scripts\/lib\/category-union-evidence\.mjs/i, "Master image must copy the category-union module required by the import tool before TypeScript compilation");
+expect(paths.masterDockerfile, entries.masterDockerfile, /COPY\s+scripts\/lib\/category-union-evidence\.d\.mts\s+scripts\/lib\/category-union-evidence\.d\.mts/i, "Master image must copy the category-union type declaration required by strict TypeScript compilation");
 
 for (const marker of ["node", "chrome", "Test-Path", "Invoke-WebRequest", "winsw", "restart", "retail-worker-service.xml"]) {
   expect(paths.windowsInstaller, entries.windowsInstaller, new RegExp(marker, "i"), `Windows installer must include ${marker}`);

@@ -18,6 +18,8 @@ RUN pnpm install --frozen-lockfile --prod=false \
   && test -x apps/master/node_modules/.bin/tsc
 COPY apps/master apps/master
 COPY packages/shared packages/shared
+COPY scripts/lib/category-union-evidence.mjs scripts/lib/category-union-evidence.mjs
+COPY scripts/lib/category-union-evidence.d.mts scripts/lib/category-union-evidence.d.mts
 RUN pnpm --filter @retail-orchestrator/shared exec tsc \
   && pnpm --filter @retail-orchestrator/master build \
   && node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('packages/shared/package.json','utf8'));p.main='dist/index.js';p.types='dist/index.d.ts';p.exports={'.':{types:'./dist/index.d.ts',import:'./dist/index.js',default:'./dist/index.js'}};delete p.scripts;delete p.devDependencies;fs.writeFileSync('packages/shared/runtime-package.json',JSON.stringify(p,null,2)+'\n')"
