@@ -101,6 +101,34 @@ Browser Slot 重新验证，不能只相信文档。
 
 适用：201 上新建 Codex 会话或完成版本升级后的首次接管。
 
+## 4.2 模板 A2：66 独立单店节点当前生产接管
+
+```text
+请接管 Retail-Radar 66 独立单店节点。先只读核验，不创建任务、不启动 Chrome、不连接真实门店页面。
+
+按顺序读取：
+1. 运行目录 handoff/CURRENT-HANDOFF.md
+2. HANDOFF_START_HERE.md
+3. docs/operations/2026-08-17-github-66-201-release-handoff.md
+4. docs/handoff/02-Codex固定阅读与操作顺序.md
+5. docs/handoff/12-已验证与待现场验证能力.md
+6. 运行目录 handoff/ 中现存的 66 私有节点材料
+
+当前正式基线应为 v0.2.5、commit bc61bacf316ca6139973984fd6ed803537f3bb09、
+schema 2026-08-17-p0.1。66 当前只负责小柴购（甘家寨店），不能领取 201 负责的门店。
+
+请从本机 /ready、/api/version、容器、PostgreSQL、Worker 心跳和 Browser Slot 重新验证，并输出：
+- 当前生产版本是否一致
+- 当前活动任务、断点、原始产物和风险事件
+- 本地 Worker/CDP/Profile 当前事实
+- 最近可用备份和回滚目标
+- 登录或真实小类目 Canary 前仍缺少的条件
+
+若页面、账号、门店或当前证据与交接记录不一致，停止生产动作并报告差异。
+```
+
+适用：66 上新建 Codex 会话、节点重启或版本升级后的首次接管。
+
 ## 5. 模板 B：新批次开始前只读检查
 
 ```text
