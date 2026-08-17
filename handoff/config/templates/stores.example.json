@@ -1,0 +1,22 @@
+{
+  "stores": [
+    {
+      "storeId": "sample-store-01",
+      "storeName": "脱敏示例门店",
+      "platform": "meituan_h5",
+      "poiIdStr": "sample-poi-01",
+      "entryUrl": "https://example.invalid/store/sample-store-01",
+      "collectionPolicy": {
+        "locationPreflight": {
+          "required": false,
+          "latitude": null,
+          "longitude": null,
+          "maxDistanceMeters": 5000,
+          "source": "<OPERATOR_CONFIRMED_STORE_AREA>"
+        }
+      },
+      "enabled": false,
+      "notes": "生产前由运营确认门店附近中心点并启用 locationPreflight；同时从真实页面核对门店 ID。"
+    }
+  ]
+}

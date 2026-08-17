@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "keyId": "production-2026",
+  "payload": {
+    "version": "1.0.0",
+    "minimumMasterVersion": "1.0.0",
+    "generatedAt": "2026-07-15T00:00:00.000Z",
+    "artifacts": [
+      {
+        "platform": "windows-x64",
+        "url": "https://retail-master.local:2808/releases/retail-radar-worker-1.0.0-windows-x64.zip",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sizeBytes": 1
+      },
+      {
+        "platform": "macos-arm64",
+        "url": "https://retail-master.local:2808/releases/retail-radar-worker-1.0.0-macos-arm64.tar.gz",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sizeBytes": 1
+      },
+      {
+        "platform": "macos-x64",
+        "url": "https://retail-master.local:2808/releases/retail-radar-worker-1.0.0-macos-x64.tar.gz",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "sizeBytes": 1
+      }
+    ]
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "value": "<base64-ed25519-signature>"
+  }
+}

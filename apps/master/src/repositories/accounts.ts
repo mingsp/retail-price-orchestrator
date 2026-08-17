@@ -8,9 +8,39 @@ import type { Pool } from "pg";
 
 export async function listAccounts(db: Pool): Promise<AccountRegistryRow[]> {
   const result = await db.query(`
-    SELECT a.*, p.profile_path, p.status AS profile_status
+    SELECT a.*, p.profile_path, p.status AS profile_status,
+      registry_store.name AS registry_store_name,
+      active_task.store_id AS active_store_id,
+      active_task.store_name AS active_store_name,
+      active_task.category_name AS active_category_name,
+      collection.last_collected_at,
+      collection.last_store_id,
+      collection.last_store_name
     FROM accounts a
     LEFT JOIN profiles p ON p.profile_id = a.profile_id
+    LEFT JOIN stores registry_store ON registry_store.store_id = a.current_store_id
+    LEFT JOIN LATERAL (
+      SELECT t.store_id, s.name AS store_name, t.category_name
+      FROM category_tasks t
+      JOIN stores s ON s.store_id = t.store_id
+      WHERE t.assigned_account_id = a.account_id
+        AND t.status IN ('assigned','running','collecting','captured','uploading','structuring','validating')
+      ORDER BY COALESCE(t.last_progress_at, t.updated_at) DESC
+      LIMIT 1
+    ) active_task ON true
+    LEFT JOIN LATERAL (
+      SELECT
+        t.last_progress_at AS last_collected_at,
+        t.store_id AS last_store_id,
+        s.name AS last_store_name
+      FROM category_tasks t
+      JOIN stores s ON s.store_id = t.store_id
+      WHERE t.assigned_account_id = a.account_id
+        AND t.collected_items > 0
+        AND t.last_progress_at IS NOT NULL
+      ORDER BY t.last_progress_at DESC
+      LIMIT 1
+    ) collection ON true
     ORDER BY a.worker_id ASC, a.account_id ASC
   `);
 
@@ -25,9 +55,11 @@ export async function listAccounts(db: Pool): Promise<AccountRegistryRow[]> {
     profileStatus: row.profile_status || "safe",
     profilePath: row.profile_path || "",
     cdpPort: row.cdp_port,
-    currentStoreId: row.current_store_id || undefined,
-    currentStoreName: row.current_store_name || undefined,
-    currentCategoryName: row.current_category_name || undefined,
+    cdpEndpoint: row.cdp_endpoint || undefined,
+    currentStoreId: row.active_store_id || row.current_store_id || row.last_store_id || undefined,
+    currentStoreName: row.active_store_name || row.registry_store_name || row.last_store_name || row.current_store_name || undefined,
+    currentCategoryName: row.active_category_name || undefined,
+    lastCollectedAt: row.last_collected_at?.toISOString(),
     lastVerifiedAt: row.last_verified_at?.toISOString(),
     lastRiskAt: row.last_risk_at?.toISOString(),
     updatedAt: row.updated_at.toISOString()
@@ -89,6 +121,7 @@ export async function listProfiles(db: Pool): Promise<ProfileRegistryRow[]> {
     accountId: row.account_id || undefined,
     profilePath: row.profile_path,
     cdpPort: row.cdp_port,
+    cdpEndpoint: row.cdp_endpoint || undefined,
     status: row.status,
     riskCount: row.risk_count,
     lastRiskAt: row.last_risk_at?.toISOString(),

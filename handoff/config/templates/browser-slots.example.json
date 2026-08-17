@@ -1,0 +1,19 @@
+{
+  "workerId": "sample-worker-01",
+  "slots": [
+    {
+      "slotId": "sample-slot-01",
+      "machineLabel": "示例 Worker",
+      "endpointUrl": "http://127.0.0.1:19221",
+      "profileId": "sample-profile-01",
+      "profileRoot": "<LOCAL_PURE_COLLECTOR_PROFILE_ROOT>",
+      "accountId": "sample-account-01",
+      "maskedLogin": "138****0000",
+      "operatorOwner": "示例运营",
+      "targetStoreId": "sample-store-01",
+      "targetStoreName": "脱敏示例门店",
+      "status": "idle",
+      "riskLevel": "normal"
+    }
+  ]
+}

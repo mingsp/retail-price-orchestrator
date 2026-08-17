@@ -1,0 +1,18 @@
+{
+  "provider": "dingtalk",
+  "webhookEnvName": "DINGTALK_WEBHOOK_URL",
+  "notifyOn": [
+    "captcha",
+    "identity_check",
+    "http_403",
+    "http_418",
+    "login_expired",
+    "store_products_invisible",
+    "worker_offline",
+    "store_progress_50",
+    "store_completed_valid"
+  ],
+  "includeFullLogin": false,
+  "includeLocalPaths": false,
+  "includeRequestIdentifiers": false
+}

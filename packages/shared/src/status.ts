@@ -11,8 +11,29 @@ export const accountStatuses = [
 ] as const;
 export type AccountStatus = (typeof accountStatuses)[number];
 
+export const accountPoolStatuses = ["available", "reserved", "in_use", "cooldown", "risk", "retired"] as const;
+export type AccountPoolStatus = (typeof accountPoolStatuses)[number];
+
 export const profileStatuses = ["safe", "profile_risk", "retired"] as const;
 export type ProfileStatus = (typeof profileStatuses)[number];
+
+export const cdpEndpointStatuses = [
+  "unknown",
+  "idle",
+  "ready",
+  "running",
+  "manual_required",
+  "login_required",
+  "profile_risk",
+  "retired"
+] as const;
+export type CdpEndpointStatus = (typeof cdpEndpointStatuses)[number];
+
+export const cdpCommandActions = ["launch_profile", "stop_profile", "open_identity_page", "mark_profile_risk", "retire_profile"] as const;
+export type CdpCommandAction = (typeof cdpCommandActions)[number];
+
+export const cdpCommandStatuses = ["pending", "claimed", "running", "completed", "failed", "cancelled"] as const;
+export type CdpCommandStatus = (typeof cdpCommandStatuses)[number];
 
 export const riskLevels = ["normal", "watch", "high", "blocked"] as const;
 export type RiskLevel = (typeof riskLevels)[number];
@@ -27,9 +48,16 @@ export const taskStatuses = [
   "pending",
   "assigned",
   "running",
+  "collecting",
+  "captured",
+  "uploading",
+  "structuring",
+  "validating",
   "paused",
   "manual_required",
   "completed",
+  "completed_valid",
+  "needs_review",
   "failed",
   "skipped"
 ] as const;

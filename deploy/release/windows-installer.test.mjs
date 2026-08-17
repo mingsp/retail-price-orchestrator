@@ -1,0 +1,150 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { test } from "node:test";
+
+const installerUrl = new URL("../windows/install-worker.ps1", import.meta.url);
+const workerLauncherUrl = new URL("../windows/start-worker.ps1", import.meta.url);
+const cdpHelperLauncherUrl = new URL("../windows/start-cdp-helper.ps1", import.meta.url);
+const workerUpgradeEntryUrl = new URL("../windows/invoke-worker-upgrade-from-stdin.ps1", import.meta.url);
+const masterUpgradeEntryUrl = new URL("../windows/invoke-master-worker-upgrade.ps1", import.meta.url);
+const runtimePreparationUrl = new URL("../windows/prepare-worker-runtime.ps1", import.meta.url);
+const masterInstallEntryUrl = new URL("../windows/invoke-master-worker-install.ps1", import.meta.url);
+const workerUpgradeUrl = new URL("../windows/upgrade-worker.ps1", import.meta.url);
+const workerReleaseAccessUrl = new URL("../windows/test-worker-release-access.ps1", import.meta.url);
+const workerResourcePolicyUrl = new URL("../windows/configure-worker-resource-policy.ps1", import.meta.url);
+
+test("Windows installer registers the interactive CDP helper with the resolved Windows identity", async () => {
+  const installer = await readFile(installerUrl, "utf8");
+
+  assert.match(installer, /\$interactiveUser\s*=\s*\$currentIdentity\.Name/);
+  assert.match(installer, /New-ScheduledTaskTrigger -AtLogOn -User \$interactiveUser/);
+  assert.match(installer, /New-ScheduledTaskPrincipal -UserId \$interactiveUser/);
+  assert.doesNotMatch(installer, /New-ScheduledTask(?:Trigger|Principal).*\$env:USERDOMAIN/);
+});
+
+test("Windows CDP helper can start and keep running while a laptop is on battery", async () => {
+  const [installer, upgrade] = await Promise.all([
+    readFile(installerUrl, "utf8"),
+    readFile(workerUpgradeUrl, "utf8")
+  ]);
+
+  assert.match(installer, /-AllowStartIfOnBatteries/);
+  assert.match(installer, /-DontStopIfGoingOnBatteries/);
+  assert.match(upgrade, /-AllowStartIfOnBatteries/);
+  assert.match(upgrade, /-DontStopIfGoingOnBatteries/);
+});
+
+test("Windows launchers read the UTF-8 worker environment without corrupting Chinese labels", async () => {
+  const launchers = await Promise.all([
+    readFile(workerLauncherUrl, "utf8"),
+    readFile(cdpHelperLauncherUrl, "utf8")
+  ]);
+
+  for (const launcher of launchers) {
+    assert.match(launcher, /Get-Content\s+-LiteralPath\s+\$EnvironmentFile\s+-Encoding\s+UTF8/);
+  }
+});
+
+test("Windows installer transports the machine label through an ASCII-safe base64 value", async () => {
+  const installer = await readFile(installerUrl, "utf8");
+
+  assert.match(installer, /\[string\]\$MachineLabelBase64/);
+  assert.match(installer, /WORKER_MACHINE_LABEL_BASE64=/);
+  assert.match(installer, /\[Convert\]::ToBase64String\(\[Text\.Encoding\]::UTF8\.GetBytes\(\$MachineLabel\)\)/);
+});
+
+test("Windows Worker upgrade entry consumes a protected automation token file", async () => {
+  const entry = await readFile(workerUpgradeEntryUrl, "utf8");
+
+  assert.match(entry, /AutomationTokenFile/);
+  assert.match(entry, /\[IO\.File\]::WriteAllBytes/);
+  assert.match(entry, /Remove-Item\s+-LiteralPath\s+\$resolvedTokenFile/);
+  assert.match(entry, /if\s*\(\$existingEncodedLine\)/);
+  assert.match(entry, /WORKER_MACHINE_LABEL_BASE64=/);
+  assert.doesNotMatch(entry, /AUTOMATION_TOKEN\s*=/);
+});
+
+test("Master Worker upgrade entry transfers a short-lived token file without exposing its value", async () => {
+  const entry = await readFile(masterUpgradeEntryUrl, "utf8");
+
+  assert.match(entry, /AUTOMATION_TOKEN=/);
+  assert.match(entry, /scp\.exe/);
+  assert.match(entry, /WriteAllBytes/);
+  assert.match(entry, /Remove-Item/);
+  assert.match(entry, /powershell\.exe\s+-NoProfile\s+-ExecutionPolicy\s+Bypass\s+-File/);
+  assert.doesNotMatch(entry, /access_token=/);
+  assert.match(entry, /cmd\.exe\s+\/d\s+\/s\s+\/c\s+powershell\.exe/);
+});
+
+test("Windows upgrade restarts the interactive CDP helper after switch and rollback", async () => {
+  const upgrade = await readFile(workerUpgradeUrl, "utf8");
+  const restartCalls = upgrade.match(/Restart-CdpHelper/g) || [];
+
+  assert.match(upgrade, /\$CdpHelperTaskName\s*=\s*"RetailRadarCdpHelper"/);
+  assert.match(upgrade, /Stop-ScheduledTask/);
+  assert.match(upgrade, /Start-ScheduledTask/);
+  assert.ok(restartCalls.length >= 3, "expected a helper function plus success and rollback calls");
+});
+
+test("Master upgrade entry refreshes the Worker upgrade tooling before use", async () => {
+  const entry = await readFile(masterUpgradeEntryUrl, "utf8");
+
+  assert.match(entry, /invoke-worker-upgrade-from-stdin\.ps1/);
+  assert.match(entry, /upgrade-worker\.ps1/);
+  assert.match(entry, /bootstrap\/windows\/invoke-worker-upgrade-from-stdin\.ps1/);
+  assert.match(entry, /Worker\/service\/upgrade-worker\.ps1/);
+});
+
+test("Windows runtime preparation verifies signed Node and Chrome installers", async () => {
+  const source = await readFile(runtimePreparationUrl, "utf8");
+
+  assert.match(source, /Get-AuthenticodeSignature/);
+  assert.match(source, /SignatureStatus\]::Valid/);
+  assert.match(source, /nodejs\.org\/download\/release/);
+  assert.match(source, /dl\.google\.com\/dl\/chrome\/install/);
+  assert.match(source, /Start-Process -FilePath 'msiexec\.exe'/);
+  assert.doesNotMatch(source, /-k\b|--insecure/);
+});
+
+test("Master Worker install entry protects enrollment credentials", async () => {
+  const source = await readFile(masterInstallEntryUrl, "utf8");
+
+  assert.match(source, /OPERATOR_TOKEN=/);
+  assert.match(source, /worker-enrollment-tokens/);
+  assert.match(source, /EnrollmentTokenFile/);
+  assert.match(source, /scp\.exe/);
+  assert.match(source, /WriteAllBytes/);
+  assert.match(source, /Remove-Item/);
+  assert.doesNotMatch(source, /-EnrollmentToken\s+['"$]/);
+});
+
+test("Worker release access probe bounds nested SSH and avoids pipeline capture deadlocks", async () => {
+  const source = await readFile(workerReleaseAccessUrl, "utf8");
+
+  assert.match(source, /Start-Process\s+-FilePath\s+["']ssh\.exe["']/);
+  assert.match(source, /RedirectStandardOutput/);
+  assert.match(source, /RedirectStandardError/);
+  assert.match(source, /WaitForExit\(\$SshTimeoutSeconds\s*\*\s*1000\)/);
+  assert.match(source, /Stop-Process\s+-Id\s+\$process\.Id\s+-Force/);
+  assert.match(source, /\$process\.Refresh\(\)/);
+  assert.doesNotMatch(source, /@\(\s*&\s+ssh\.exe/);
+  assert.doesNotMatch(source, /\$process\.ExitCode/);
+  assert.match(source, /'cmd\.exe', '\/d', '\/s', '\/c'/);
+});
+
+test("Master Worker install entry uses the terminating Windows SSH shell wrapper", async () => {
+  const source = await readFile(masterInstallEntryUrl, "utf8");
+  assert.match(source, /cmd\.exe\s+\/d\s+\/s\s+\/c\s+powershell\.exe/);
+});
+
+test("Worker resource policy is bounded, backed up, and rolls back failed restarts", async () => {
+  const source = await readFile(workerResourcePolicyUrl, "utf8");
+
+  assert.match(source, /ValidateRange\(1, 32\).*CaptureConcurrency/);
+  assert.match(source, /MemoryStopRatio -le \$MemoryShrinkRatio/);
+  assert.match(source, /pre-resource-policy/);
+  assert.match(source, /WORKER_CDP_STATE_FILE/);
+  assert.match(source, /Copy-Item -LiteralPath \$backup -Destination \$EnvironmentFile -Force/);
+  assert.match(source, /worker_runtime_restart_failed/);
+  assert.doesNotMatch(source, /(password|access_token)\s*=/i);
+});

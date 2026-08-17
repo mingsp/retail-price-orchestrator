@@ -5,14 +5,18 @@ import path from "node:path";
 import type { AccountSnapshot, CategoryTaskRecord } from "@retail-orchestrator/shared";
 import type { WorkerConfig } from "./config.js";
 import { createRiskEvent, presignArtifact, registerArtifact, setTaskStatus, updateTask } from "./master-api.js";
+import { captureRiskScreenshot } from "./risk-screenshot.js";
+import { collectorProcessGroupOptions, terminateChildProcessTree, waitForChildClose } from "./child-process-lifecycle.js";
 
 interface LegacyRunContext {
   config: WorkerConfig;
   task: CategoryTaskRecord;
   account: AccountSnapshot;
+  signal?: AbortSignal;
 }
 
-export async function runLegacyCollector({ config, task, account }: LegacyRunContext): Promise<void> {
+export async function runLegacyCollector({ config, task, account, signal }: LegacyRunContext): Promise<void> {
+  if (signal?.aborted) throw new Error("legacy_collector_aborted");
   const scriptRoot = path.resolve(process.cwd(), config.legacyScriptRoot);
   const scriptPath = path.join(scriptRoot, config.legacyScriptName);
   const captureDate = shanghaiDate();
@@ -30,19 +34,22 @@ export async function runLegacyCollector({ config, task, account }: LegacyRunCon
     await assertRequiredFile(path.resolve(scriptRoot, config.categoryPlanFile), "category plan");
   }
 
-  await setTaskStatus(config, task.taskId, "running", {
-    assignedWorkerId: config.worker.workerId,
-    assignedAccountId: account.accountId,
-    assignedProfileId: account.profileId,
-    cursor: { adapter: "legacy-cdp", runId, startedAt: new Date().toISOString() }
+  await markLegacyCollectorStarted(config, task.taskId, {
+    adapter: "legacy-cdp",
+    runId,
+    startedAt: new Date().toISOString()
   });
 
   const env = buildLegacyEnv(config, task, account, runId, captureDate);
+  const stopFile = path.join(scriptRoot, `${runId}.stop`);
+  await fs.rm(stopFile, { force: true });
   const child = spawn(process.execPath, [scriptPath], {
+    ...collectorProcessGroupOptions(),
     cwd: scriptRoot,
     env: { ...process.env, ...env },
     stdio: ["ignore", "pipe", "pipe"]
   });
+  const childClosed = waitForChildClose(child);
 
   let collectedItems = task.collectedItems || 0;
   child.stdout.setEncoding("utf8");
@@ -59,9 +66,23 @@ export async function runLegacyCollector({ config, task, account }: LegacyRunCon
     console.error(`[collector:${task.taskId}] ${chunk.trim()}`);
   });
 
-  const exitCode = await new Promise<number | null>((resolve) => {
-    child.on("exit", (code) => resolve(code));
-  });
+  const abortCollector = () => {
+    void fs.writeFile(stopFile, "lease_lost\n", "utf8").catch(() => undefined);
+    void terminateChildProcessTree(child).catch((error) => {
+      console.error(`[collector:${task.taskId}] failed to terminate process tree: ${error.message}`);
+    });
+  };
+  signal?.addEventListener("abort", abortCollector, { once: true });
+
+  let exitCode: number | null;
+  try {
+    exitCode = await childClosed;
+  } finally {
+    signal?.removeEventListener("abort", abortCollector);
+    await fs.rm(stopFile, { force: true }).catch(() => undefined);
+  }
+
+  if (signal?.aborted) throw new Error("legacy_collector_aborted");
 
   if (exitCode === 0) {
     await updateTask(config, task.taskId, {
@@ -81,6 +102,14 @@ export async function runLegacyCollector({ config, task, account }: LegacyRunCon
   await uploadArtifacts(config, task, account, runId, outputFiles);
 }
 
+export async function markLegacyCollectorStarted(
+  config: WorkerConfig,
+  taskId: string,
+  cursor: Record<string, unknown>
+): Promise<void> {
+  await setTaskStatus(config, taskId, "running", { cursor });
+}
+
 function buildLegacyEnv(
   config: WorkerConfig,
   task: CategoryTaskRecord,
@@ -94,6 +123,7 @@ function buildLegacyEnv(
     MT_RUN_ID: runId,
     MT_CAPTURE_DATE: captureDate,
     MT_CDP_PORT: String(account.cdpPort),
+    MT_CDP_ENDPOINT: account.cdpEndpoint || `http://127.0.0.1:${account.cdpPort}`,
     MT_ACCOUNT_LABEL: account.displayName,
     MT_CATEGORY_NAMES: task.categoryName,
     MT_CATEGORY_TAGS: categoryTag,
@@ -131,6 +161,10 @@ async function handleCollectorLine(
   }
 
   if (["risk_pause", "risk_pause_waiting", "inpage_response_risk"].includes(event.event)) {
+    const screenshotArtifactId = await captureRiskScreenshot(config, task, account).catch((error) => {
+      console.warn(`[worker] failed to capture risk screenshot: ${error.message}`);
+      return undefined;
+    });
     await updateTask(config, task.taskId, {
       status: "manual_required",
       lastError: event.reason || event.event,
@@ -147,6 +181,7 @@ async function handleCollectorLine(
       storeName: task.storeName,
       categoryName: task.categoryName,
       phase: "legacy-collector",
+      screenshotArtifactId,
       observed: JSON.stringify(event).slice(0, 1000),
       recommendedAction: "人工检查当前 CDP 页面；如验证码/登录/身份核实，处理后创建脚本提示的 resume 文件。"
     }).catch((error) => console.error(`[worker] failed to create risk event: ${error.message}`));
@@ -189,7 +224,7 @@ async function uploadArtifacts(
       task.taskId,
       `${runId}-${path.basename(file)}`
     ].join("/");
-    const presign = await presignArtifact(config, config.artifactBucket, objectKey);
+    const presign = await presignArtifact(config, config.artifactBucket, objectKey, task, account);
     const response = await fetch(presign.url, {
       method: "PUT",
       body: buffer

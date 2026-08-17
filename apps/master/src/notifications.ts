@@ -1,32 +1,26 @@
 import type { RiskEventRecord } from "@retail-orchestrator/shared";
+import type { Pool } from "pg";
+import {
+  buildRiskNotification,
+  buildRunMilestoneNotification,
+  type RunMilestoneNotification
+} from "./notification-outbox.js";
+import { enqueueNotification } from "./repositories/notification-outbox.js";
 
-export async function notifyRiskEvent(webhookUrl: string | undefined, risk: RiskEventRecord): Promise<void> {
-  if (!webhookUrl) return;
+export async function queueRiskEventNotification(
+  db: Pool,
+  enabled: boolean,
+  risk: RiskEventRecord
+): Promise<{ notificationId?: string; inserted: boolean }> {
+  if (!enabled) return { inserted: false };
+  return enqueueNotification(db, buildRiskNotification(risk));
+}
 
-  const text = [
-    "采集风险事件",
-    `类型: ${risk.riskType}`,
-    `级别: ${risk.severity}`,
-    `Worker: ${risk.workerId}`,
-    risk.accountId ? `账号: ${risk.accountId}` : "",
-    risk.profileId ? `Profile: ${risk.profileId}` : "",
-    risk.cdpPort ? `CDP: ${risk.cdpPort}` : "",
-    risk.storeName || risk.storeId ? `门店: ${risk.storeName || risk.storeId}` : "",
-    risk.categoryName ? `类目: ${risk.categoryName}` : "",
-    `现象: ${risk.observed}`,
-    `建议: ${risk.recommendedAction}`
-  ].filter(Boolean).join("\n");
-
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      msgtype: "text",
-      text: { content: text }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`dingtalk notification failed: ${response.status}`);
-  }
+export async function queueRunMilestoneNotification(
+  db: Pool,
+  enabled: boolean,
+  milestone: RunMilestoneNotification
+): Promise<{ notificationId?: string; inserted: boolean }> {
+  if (!enabled) return { inserted: false };
+  return enqueueNotification(db, buildRunMilestoneNotification(milestone));
 }
