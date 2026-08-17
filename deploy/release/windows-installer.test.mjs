@@ -206,6 +206,11 @@ test("Versioned source preparation judges native commands by exit code under red
   assert.match(source, /\$exitCode = \$LASTEXITCODE/);
   assert.match(source, /Invoke-NativeCommand -Command \$gitCommand/);
   assert.match(source, /Invoke-NativeCommand -Command \$script:corepackCommand/);
+  assert.match(source, /OfflineCorepackHome/);
+  assert.match(source, /OfflinePnpmStore/);
+  assert.match(source, /COREPACK_ENABLE_NETWORK = '0'/);
+  assert.match(source, /--offline', '--store-dir'/);
+  assert.match(source, /offlineDependencyCache = \$offlineRequested/);
   assert.doesNotMatch(source, /& \$gitCommand clone/);
 });
 

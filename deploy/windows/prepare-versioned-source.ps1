@@ -3,7 +3,9 @@ param(
     [Parameter(Mandatory = $true)][ValidatePattern('^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$')][string]$Tag,
     [Parameter(Mandatory = $true)][ValidatePattern('^[a-f0-9]{40}$')][string]$ExpectedCommit,
     [string]$RepositoryUrl = 'https://github.com/mingsp/retail-price-orchestrator.git',
-    [string]$InstallRoot = 'C:\ProgramData\RetailRadar\Master'
+    [string]$InstallRoot = 'C:\ProgramData\RetailRadar\Master',
+    [string]$OfflineCorepackHome = '',
+    [string]$OfflinePnpmStore = ''
 )
 
 Set-StrictMode -Version Latest
@@ -58,15 +60,35 @@ function Invoke-PinnedPnpm {
         [Parameter(Mandatory = $true)][string]$RequiredVersion
     )
 
+    $effectiveArguments = @($Arguments)
+    if ($script:offlinePnpmStore -and $effectiveArguments.Count -gt 0 -and $effectiveArguments[0] -eq 'install') {
+        $effectiveArguments += @('--offline', '--store-dir', $script:offlinePnpmStore)
+    }
     if ($script:corepackCommand) {
-        Invoke-NativeCommand -Command $script:corepackCommand -Arguments (@('pnpm') + $Arguments) -FailureMessage "pnpm command failed: $($Arguments -join ' ')"
+        Invoke-NativeCommand -Command $script:corepackCommand -Arguments (@('pnpm') + $effectiveArguments) -FailureMessage "pnpm command failed: $($effectiveArguments -join ' ')"
     } else {
         $actualVersion = ((Invoke-NativeCommand -Command $script:pnpmCommand -Arguments @('--version') -FailureMessage 'pnpm version check failed') | Select-Object -Last 1).ToString().Trim()
         if ($actualVersion -ne $RequiredVersion) {
             throw "pnpm version mismatch: expected $RequiredVersion, got $actualVersion"
         }
-        Invoke-NativeCommand -Command $script:pnpmCommand -Arguments $Arguments -FailureMessage "pnpm command failed: $($Arguments -join ' ')"
+        Invoke-NativeCommand -Command $script:pnpmCommand -Arguments $effectiveArguments -FailureMessage "pnpm command failed: $($effectiveArguments -join ' ')"
     }
+}
+
+$offlineRequested = -not [string]::IsNullOrWhiteSpace($OfflineCorepackHome) -or -not [string]::IsNullOrWhiteSpace($OfflinePnpmStore)
+if ($offlineRequested) {
+    if ([string]::IsNullOrWhiteSpace($OfflineCorepackHome) -or [string]::IsNullOrWhiteSpace($OfflinePnpmStore)) {
+        throw 'OfflineCorepackHome and OfflinePnpmStore must be supplied together'
+    }
+    $offlineCorepack = [IO.Path]::GetFullPath($OfflineCorepackHome)
+    $offlinePnpmStore = [IO.Path]::GetFullPath($OfflinePnpmStore)
+    if (-not (Test-Path -LiteralPath $offlineCorepack -PathType Container)) { throw 'Offline Corepack cache was not found' }
+    if (-not (Test-Path -LiteralPath $offlinePnpmStore -PathType Container)) { throw 'Offline pnpm store was not found' }
+    $env:COREPACK_HOME = $offlineCorepack
+    $env:COREPACK_ENABLE_NETWORK = '0'
+    $script:offlinePnpmStore = $offlinePnpmStore
+} else {
+    $script:offlinePnpmStore = $null
 }
 
 $gitCommand = Resolve-RequiredCommand -Names @('git.exe', 'git')
@@ -126,6 +148,7 @@ try {
         previousDeploymentPreserved = $true
         nodeVersion = $actualNodeVersion
         pnpmVersion = $actualPnpmVersion
+        offlineDependencyCache = $offlineRequested
     }
     [IO.File]::WriteAllText(
         (Join-Path $staging 'candidate-verification.json'),
