@@ -16,6 +16,8 @@ const standaloneLauncherUrl = new URL("../windows/start-standalone-node.ps1", im
 const standaloneActivationUrl = new URL("../windows/activate-standalone-candidate.ps1", import.meta.url);
 const masterBackupUrl = new URL("../windows/backup-master.ps1", import.meta.url);
 const versionedSourcePreparationUrl = new URL("../windows/prepare-versioned-source.ps1", import.meta.url);
+const windowsAclUrl = new URL("../windows/windows-acl.ps1", import.meta.url);
+const observabilityConfigurationUrl = new URL("../windows/configure-observability.ps1", import.meta.url);
 
 test("Windows installer registers the interactive CDP helper with the resolved Windows identity", async () => {
   const installer = await readFile(installerUrl, "utf8");
@@ -200,4 +202,23 @@ test("Versioned source preparation judges native commands by exit code under red
   assert.match(source, /Invoke-NativeCommand -Command \$gitCommand/);
   assert.match(source, /Invoke-NativeCommand -Command \$script:corepackCommand/);
   assert.doesNotMatch(source, /& \$gitCommand clone/);
+});
+
+test("SYSTEM-run production scripts protect files by SID instead of the machine-account username", async () => {
+  const [acl, activation, backup, observability] = await Promise.all([
+    readFile(windowsAclUrl, "utf8"),
+    readFile(standaloneActivationUrl, "utf8"),
+    readFile(masterBackupUrl, "utf8"),
+    readFile(observabilityConfigurationUrl, "utf8")
+  ]);
+
+  assert.match(acl, /\*S-1-5-18/);
+  assert.match(acl, /\*S-1-5-32-544/);
+  assert.match(acl, /WindowsIdentity\]::GetCurrent/);
+  assert.doesNotMatch(acl, /env:USERNAME/);
+  for (const source of [activation, backup, observability]) {
+    assert.match(source, /windows-acl\.ps1/);
+    assert.match(source, /Protect-RetailRadarPath/);
+    assert.doesNotMatch(source, /env:USERNAME/);
+  }
 });

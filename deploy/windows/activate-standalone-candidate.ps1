@@ -10,6 +10,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'windows-acl.ps1')
 
 function Set-EnvironmentValue {
     param(
@@ -70,8 +71,7 @@ if ($package.version -ne $normalizedVersion) { throw 'Package version does not m
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $rollbackRoot = Join-Path $state "backups\activation-$timestamp"
 New-Item -ItemType Directory -Force -Path $rollbackRoot | Out-Null
-& icacls.exe $rollbackRoot /inheritance:r /grant:r 'SYSTEM:(OI)(CI)F' 'BUILTIN\Administrators:(OI)(CI)F' "${env:USERNAME}:(OI)(CI)F" | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Failed to protect activation rollback evidence' }
+Protect-RetailRadarPath -Path $rollbackRoot -Container
 $environmentBackup = Join-Path $rollbackRoot 'standalone.env.production'
 Copy-Item -LiteralPath $environmentPath -Destination $environmentBackup
 

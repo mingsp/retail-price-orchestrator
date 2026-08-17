@@ -7,6 +7,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'windows-acl.ps1')
 
 function Read-EnvMap {
   param([string]$Path)
@@ -29,11 +30,7 @@ function New-UrlSafeSecret {
 
 function Protect-SecretFile {
   param([string]$Path)
-  & icacls.exe $Path /inheritance:r /grant:r `
-    'SYSTEM:F' `
-    'BUILTIN\Administrators:F' `
-    "${env:USERNAME}:F" | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "Failed to protect observability configuration" }
+  Protect-RetailRadarPath -Path $Path
 }
 
 function Set-EnvValue {

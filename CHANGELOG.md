@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.11] - 2026-08-17
+
+### SYSTEM 身份兼容
+
+- 生产 ACL 统一使用 LocalSystem、Administrators 和当前非系统主体的 SID，不再依赖计划任务下会变成计算机账户的 `USERNAME`。
+- 候选激活、每日备份与 Alertmanager 配置保护均复用同一 ACL 实现，避免 SYSTEM 任务以 1332 失败。
+
 ## [0.2.10] - 2026-08-17
 
 ### 真实健康探针

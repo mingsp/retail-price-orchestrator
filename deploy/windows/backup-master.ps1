@@ -9,6 +9,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'windows-acl.ps1')
 
 function Get-LabelValue($Labels, [string]$Name) {
     $property = $Labels.PSObject.Properties[$Name]
@@ -57,11 +58,7 @@ $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupBase = if ($BackupDestinationRoot) { $BackupDestinationRoot } else { Join-Path $InstallRoot 'backups' }
 $backupRoot = Join-Path $backupBase "$BackupPrefix-$timestamp"
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
-& icacls.exe $backupRoot /inheritance:r /grant:r `
-    'SYSTEM:(OI)(CI)F' `
-    'BUILTIN\Administrators:(OI)(CI)F' `
-    "${env:USERNAME}:(OI)(CI)F" | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Failed to secure the backup directory' }
+Protect-RetailRadarPath -Path $backupRoot -Container
 
 $containerDump = "/tmp/predeploy-$timestamp.dump"
 $dumpPath = Join-Path $backupRoot 'postgres.dump'
