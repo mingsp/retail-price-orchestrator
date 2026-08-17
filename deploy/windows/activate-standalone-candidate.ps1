@@ -50,6 +50,7 @@ $packagePath = Join-Path $project 'package.json'
 $startScript = Join-Path $project 'deploy\windows\start-standalone-node.ps1'
 $observabilityScript = Join-Path $project 'deploy\windows\configure-observability.ps1'
 $alertmanagerConfigPath = Join-Path $state 'config\alertmanager.generated.yml'
+$alertmanagerTemplatePath = Join-Path $project 'infra\alertmanager\alertmanager.template.yml'
 foreach ($required in @($environmentPath, $verificationPath, $packagePath, $startScript)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required activation input is missing: $required" }
 }
@@ -83,7 +84,8 @@ try {
     if ($EnableObservability) {
         if (-not (Test-Path -LiteralPath $observabilityScript -PathType Leaf)) { throw 'Observability configuration script is missing' }
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $observabilityScript `
-            -ProductionEnvPath $environmentPath -OutputConfigPath $alertmanagerConfigPath
+            -ProductionEnvPath $environmentPath -OutputConfigPath $alertmanagerConfigPath `
+            -TemplatePath $alertmanagerTemplatePath
         if ($LASTEXITCODE -ne 0) { throw 'Observability configuration failed' }
     }
 
@@ -119,7 +121,8 @@ try {
     }
 
     $verification.activation = 'switched'
-    $verification.activatedAt = (Get-Date).ToUniversalTime().ToString('o')
+    $verification | Add-Member -NotePropertyName activatedAt `
+        -NotePropertyValue (Get-Date).ToUniversalTime().ToString('o') -Force
     [IO.File]::WriteAllText($verificationPath, ($verification | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
 
     [pscustomobject]@{

@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.12] - 2026-08-17
+
+### PowerShell 5.1 路径兼容
+
+- 候选激活显式传入 Alertmanager 模板绝对路径，避免 Windows PowerShell 5.1 在 `-File` 参数默认值阶段尚未提供 `$PSScriptRoot`。
+- 监控配置仍只写受保护的外部状态目录，不向源码或命令行写入通知密钥。
+
 ## [0.2.11] - 2026-08-17
 
 ### SYSTEM 身份兼容

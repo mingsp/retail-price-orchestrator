@@ -180,9 +180,11 @@ test("Standalone activation switches startup only after health and version verif
   assert.match(source, /--resolve "\$\{MasterHostname\}:2808:127\.0\.0\.1"/);
   assert.doesNotMatch(source, /https:\/\/127\.0\.0\.1:2808\/api\/version/);
   assert.match(observabilityInvocation, /-ProductionEnvPath \$environmentPath -OutputConfigPath \$alertmanagerConfigPath/);
+  assert.match(source, /-TemplatePath \$alertmanagerTemplatePath/);
   assert.doesNotMatch(observabilityInvocation, /-ProjectRoot|-StateRoot/);
   assert.match(source, /Copy-Item -LiteralPath \$environmentBackup -Destination \$environmentPath -Force/);
   assert.match(source, /Start-ScheduledTask -TaskName \$StartupTaskName/);
+  assert.match(source, /Add-Member -NotePropertyName activatedAt/);
   assert.ok(versionCheckIndex >= 0 && taskSwitchIndex > versionCheckIndex);
   assert.doesNotMatch(source, /(password|access_token)\s*=/i);
 });
