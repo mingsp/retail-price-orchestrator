@@ -1,5 +1,5 @@
-import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { access, cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import process from "node:process";
 import { materializeRuntimeDependencyLinks } from "./worker-release-lib.mjs";
@@ -7,6 +7,12 @@ import { materializeRuntimeDependencyLinks } from "./worker-release-lib.mjs";
 const args = parseArgs(process.argv.slice(2));
 const version = args.version;
 const outputDirectory = resolve(args.output || "deploy/release/out");
+const requiredNodeVersion = (await readFile(resolve(".node-version"), "utf8")).trim();
+if (process.versions.node !== requiredNodeVersion) {
+  fail(`Node.js version mismatch: expected ${requiredNodeVersion}, got ${process.versions.node}`);
+}
+const corepackCli = resolve(dirname(process.execPath), "node_modules", "corepack", "dist", "corepack.js");
+await access(corepackCli).catch(() => fail(`Corepack CLI was not found beside the pinned Node.js runtime: ${corepackCli}`));
 if (!version) fail("Usage: pnpm release:worker -- --version 1.2.3 [--output deploy/release/out]");
 if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) fail(`Invalid semantic version: ${version}`);
 
@@ -14,8 +20,8 @@ await mkdir(outputDirectory, { recursive: true });
 const temporaryRoot = await mkdtemp(resolve(".retail-radar-worker-release-"));
 const deployed = resolve(temporaryRoot, "payload");
 try {
-  await run("pnpm", ["--filter", "@retail-orchestrator/worker", "build"]);
-  await run("pnpm", ["--config.inject-workspace-packages=true", "--filter", "@retail-orchestrator/worker", "deploy", "--prod", deployed]);
+  await runPnpm(["--filter", "@retail-orchestrator/worker", "build"]);
+  await runPnpm(["--config.inject-workspace-packages=true", "--filter", "@retail-orchestrator/worker", "deploy", "--prod", deployed]);
   const packagePath = resolve(deployed, "package.json");
   const deployedPackage = JSON.parse(await readFile(packagePath, "utf8"));
   deployedPackage.version = version;
@@ -51,6 +57,10 @@ function run(command, commandArgs) {
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolvePromise() : reject(new Error(`${command} exited with ${code}`)));
   });
+}
+
+function runPnpm(commandArgs) {
+  return run(process.execPath, [corepackCli, "pnpm", ...commandArgs]);
 }
 
 function parseArgs(values) {

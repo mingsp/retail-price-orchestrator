@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.18] - 2026-08-18
+
+### Worker 发布工具链固定
+
+- Worker 制品构建强制核对 `.node-version`，并使用当前固定 Node 同目录的 Corepack 调用 pnpm，禁止 PATH 中其他 Node/pnpm 混入发布。
+- 发布清单命令兼容 pnpm 的 `--` 参数分隔符，文档中的标准签名命令可直接执行。
+
 ## [0.2.17] - 2026-08-18
 
 ### Worker 人工介入入口

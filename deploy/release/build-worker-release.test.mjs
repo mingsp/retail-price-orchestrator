@@ -29,6 +29,10 @@ test("worker release builder creates installable artifacts without runtime profi
   const rootPackage = JSON.parse(await readFile("package.json", "utf8"));
   assert.doesNotMatch(builder, /from "node:os"/);
   assert.match(builder, /mkdtemp\(resolve\("\.retail-radar-worker-release-"\)\)/);
+  assert.match(builder, /Node\.js version mismatch/);
+  assert.match(builder, /corepackCli/);
+  assert.match(builder, /run\(process\.execPath, \[corepackCli, "pnpm"/);
+  assert.doesNotMatch(builder, /run\("pnpm"/);
   assert.equal(rootPackage.packageManager, "pnpm@11.21.0");
 
   const output = await mkdtemp(resolve(tmpdir(), "retail-radar-release-test-"));

@@ -43,6 +43,7 @@ function parseArgs(values) {
   const parsed = {};
   for (let index = 0; index < values.length; index += 1) {
     const key = values[index];
+    if (key === "--") continue;
     if (!key.startsWith("--")) fail(`Unexpected argument: ${key}`);
     const name = key.slice(2);
     const value = values[index + 1];
