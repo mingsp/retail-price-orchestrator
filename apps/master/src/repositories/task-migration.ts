@@ -89,7 +89,7 @@ export async function migrateTaskToBrowserSlot(
       JOIN workers w ON w.worker_id = bs.worker_id
       LEFT JOIN accounts a ON a.account_id = bs.account_id AND a.worker_id = bs.worker_id
       LEFT JOIN profiles p ON p.profile_id = bs.profile_id AND p.worker_id = bs.worker_id
-      LEFT JOIN cdp_endpoints c ON c.endpoint_id = 'slot:' || bs.slot_id::text
+      LEFT JOIN cdp_endpoints c ON c.slot_id = bs.slot_id
       WHERE t.task_id = $1::uuid
       FOR UPDATE OF t, bs
     `, [taskId, targetSlotId]);

@@ -18,6 +18,7 @@ const masterBackupUrl = new URL("../windows/backup-master.ps1", import.meta.url)
 const versionedSourcePreparationUrl = new URL("../windows/prepare-versioned-source.ps1", import.meta.url);
 const windowsAclUrl = new URL("../windows/windows-acl.ps1", import.meta.url);
 const observabilityConfigurationUrl = new URL("../windows/configure-observability.ps1", import.meta.url);
+const browserSlotPreparationUrl = new URL("../windows/configure-worker-browser-slots.ps1", import.meta.url);
 
 test("Windows installer registers the interactive CDP helper with the resolved Windows identity", async () => {
   const installer = await readFile(installerUrl, "utf8");
@@ -236,4 +237,52 @@ test("SYSTEM-run production scripts protect files by SID instead of the machine-
   assert.match(observability, /com\.docker\.backend/);
   assert.match(observability, /SecurityIdentifier/);
   assert.match(observability, /\*\$sid`:\(R\)/);
+});
+
+test("Browser slot preparation is bounded, reversible, and never embeds account identities", async () => {
+  const source = await readFile(browserSlotPreparationUrl, "utf8");
+
+  assert.match(source, /ValidateRange\(1, 16\).*SlotCount/);
+  assert.match(source, /ValidateRange\(1024, 65520\).*PortStart/);
+  assert.match(source, /active_tasks_block_browser_slot_change/);
+  assert.match(source, /browser-slot-prep-/);
+  assert.match(source, /WORKER_CDP_ENDPOINTS_JSON_FILE/);
+  assert.match(source, /Restart-Service -Name 'RetailRadarWorker'/);
+  assert.match(source, /Start-ScheduledTask -TaskName 'RetailRadarCdpHelper'/);
+  assert.match(source, /profileId/);
+  assert.match(source, /status = 'idle'/);
+  assert.doesNotMatch(source, /\[(?:string|securestring)\]\$(?:phone|mobile|accountDisplayName|operatorOwner|access_token|password)\b/i);
+  assert.doesNotMatch(source, /(?:phone|mobile|accountDisplayName|operatorOwner|access_token|password)\s*=\s*['"][^'"]+['"]/i);
+});
+
+test("Browser slot preparation links configured CDP endpoints to the Master slot inventory", async () => {
+  const source = await readFile(browserSlotPreparationUrl, "utf8");
+
+  assert.match(source, /\/api\/browser-slots\?workerId=/);
+  assert.match(source, /browser_slot_missing/);
+  assert.match(source, /browser_slot_port_conflict/);
+  assert.match(source, /slotId\s*=\s*\$slot\.slotId/);
+  assert.match(source, /\$connectionEndpointId\s*=\s*"\$workerId`:\$port"/);
+  assert.match(source, /endpointId\s*=\s*\$connectionEndpointId/);
+});
+
+test("Browser slot preparation only tolerates existing Chrome listeners when they belong to the managed profiles", async () => {
+  const source = await readFile(browserSlotPreparationUrl, "utf8");
+
+  assert.match(source, /\[switch\]\$AllowExistingManagedProfiles/);
+  assert.match(source, /existing_listener_not_managed/);
+  assert.match(source, /--remote-debugging-port=/);
+  assert.match(source, /chrome-profiles/);
+  assert.match(source, /browser-profiles/);
+});
+
+test("Browser slot preparation normalizes stale runtime endpoints by port before restart", async () => {
+  const source = await readFile(browserSlotPreparationUrl, "utf8");
+
+  assert.match(source, /cdp-runtime-state\.json/);
+  assert.match(source, /runtime-state\.json/);
+  assert.match(source, /stale_runtime_endpoint_port_conflict/);
+  assert.match(source, /endpointId\s*=\s*\$configured\.endpointId/);
+  assert.match(source, /function Get-OptionalProperty/);
+  assert.doesNotMatch(source, /\$observed\.(wsEndpoint|accountId|lastSeenUrl)/);
 });

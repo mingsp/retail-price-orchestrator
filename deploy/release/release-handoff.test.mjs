@@ -15,7 +15,9 @@ test("source handoff is pinned, verified, and never switches the running deploym
   assert.match(source, /pnpmVersion = \$actualPnpmVersion/);
   assert.match(source, /packageMetadata\.packageManager/);
   assert.doesNotMatch(source, /corepack\.exe enable/);
-  assert.match(source, /rev-list -n 1/);
+  assert.match(source, /@\('-C', \$staging, 'rev-list', '-n', '1', \$Tag\)/);
+  assert.match(source, /actualCommit -ne \$ExpectedCommit\.ToLowerInvariant\(\)/);
+  assert.match(source, /@\('-C', \$staging, 'checkout', '--detach', \$Tag\)/);
   assert.match(source, /@\('install', '--frozen-lockfile'\)/);
   assert.match(source, /@\('handoff:test'\)/);
   assert.match(source, /@\('typecheck'\)/);

@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.16] - 2026-08-18
+
+### Browser Slot 生产闭环
+
+- 明确区分稳定的 Browser Slot 席位标识与实际 Worker/CDP 连接标识，保留 Worker 上报的真实端点，消除同端口重复注册冲突。
+- 跨 Worker 迁移通过 Browser Slot 关系解析当前 CDP 端点，避免将席位 ID 误当连接 ID。
+- 新增可回滚的 Windows Browser Slot 配置器，支持受控创建 1 至 16 个纯采集 Profile、复用已验证的受管 Chrome 监听器并规范化历史运行态。
+
 ## [0.2.15] - 2026-08-17
 
 ### 离线供应链元数据

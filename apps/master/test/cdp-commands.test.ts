@@ -36,6 +36,19 @@ test("normalizeCdpCommandInput uses the stable slot identity when supplied", () 
   assert.equal(input.endpointId, "slot:slot-01");
 });
 
+test("normalizeCdpCommandInput preserves an observed endpoint when a slot is also supplied", () => {
+  const input = normalizeCdpCommandInput({
+    slotId: "slot-01",
+    endpointId: "mm-worker:9256",
+    workerId: "mm-worker",
+    action: "open_identity_page",
+    port: 9256,
+    profileId: "mm-profile-9256"
+  });
+
+  assert.equal(input.endpointId, "mm-worker:9256");
+});
+
 test("buildCdpCommandEndpointId is stable by worker and port", () => {
   assert.equal(buildCdpCommandEndpointId("jl-worker", 19224), "jl-worker:19224");
 });

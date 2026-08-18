@@ -23,7 +23,7 @@ export function buildCdpCommandEndpointId(workerId: string, port: number): strin
 export function normalizeCdpCommandInput(input: CreateCdpCommandInput): CreateCdpCommandInput {
   return {
     ...input,
-    endpointId: input.slotId ? `slot:${input.slotId}` : (input.endpointId || buildCdpCommandEndpointId(input.workerId, input.port)),
+    endpointId: input.endpointId || (input.slotId ? `slot:${input.slotId}` : buildCdpCommandEndpointId(input.workerId, input.port)),
     profilePath: input.profilePath || `browser-profiles/${input.profileId}`,
     proxyMode: input.proxyMode || "system"
   };
