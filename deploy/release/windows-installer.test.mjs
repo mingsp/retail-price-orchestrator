@@ -19,6 +19,7 @@ const versionedSourcePreparationUrl = new URL("../windows/prepare-versioned-sour
 const windowsAclUrl = new URL("../windows/windows-acl.ps1", import.meta.url);
 const observabilityConfigurationUrl = new URL("../windows/configure-observability.ps1", import.meta.url);
 const browserSlotPreparationUrl = new URL("../windows/configure-worker-browser-slots.ps1", import.meta.url);
+const workerRdpConfigurationUrl = new URL("../windows/configure-worker-rdp.ps1", import.meta.url);
 
 test("Windows installer registers the interactive CDP helper with the resolved Windows identity", async () => {
   const installer = await readFile(installerUrl, "utf8");
@@ -285,4 +286,20 @@ test("Browser slot preparation normalizes stale runtime endpoints by port before
   assert.match(source, /endpointId\s*=\s*\$configured\.endpointId/);
   assert.match(source, /function Get-OptionalProperty/);
   assert.doesNotMatch(source, /\$observed\.(wsEndpoint|accountId|lastSeenUrl)/);
+});
+
+test("Worker RDP configuration is bounded, reversible, and reports a business-usable target", async () => {
+  const source = await readFile(workerRdpConfigurationUrl, "utf8");
+
+  assert.match(source, /fDenyTSConnections/);
+  assert.match(source, /RemoteDesktop-UserMode-In-TCP/);
+  assert.match(source, /Set-NetFirewallAddressFilter -RemoteAddress LocalSubnet/);
+  assert.match(source, /RemoteAddress = @\(\$addressFilter\.RemoteAddress\)/);
+  assert.match(source, /WORKER_REMOTE_DESKTOP_PROVIDER.*rdp/);
+  assert.match(source, /WORKER_REMOTE_DESKTOP_TARGET/);
+  assert.match(source, /worker-rdp-/);
+  assert.match(source, /Restart-Service -Name 'RetailRadarWorker'/);
+  assert.match(source, /catch\s*\{/);
+  assert.match(source, /Restore-PreviousState/);
+  assert.doesNotMatch(source, /(password|access_token|phone|mobile)\s*=\s*['"][^'"]+['"]/i);
 });

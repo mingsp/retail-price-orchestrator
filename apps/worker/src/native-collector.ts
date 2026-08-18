@@ -61,6 +61,7 @@ export async function runNativeCollector({ config, task, account, signal }: Nati
     });
   };
   signal?.addEventListener("abort", abortHandler, { once: true });
+  if (signal?.aborted) abortHandler();
 
   let collectedItems = task.collectedItems || 0;
   let latestCursor = runCursor;

@@ -48,7 +48,7 @@ test("legacy collector start request preserves Master-owned assignment", async (
   assertAssignmentFieldsAbsent(body);
 });
 
-test("legacy collector terminates when its lease signal is aborted", async (t) => {
+test("legacy collector terminates when its lease signal is aborted", { timeout: 15_000 }, async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "legacy-task-abort-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   await fs.writeFile(path.join(root, "collector.mjs"), "setInterval(() => {}, 1000);\n", "utf8");

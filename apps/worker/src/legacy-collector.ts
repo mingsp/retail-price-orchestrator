@@ -73,6 +73,7 @@ export async function runLegacyCollector({ config, task, account, signal }: Lega
     });
   };
   signal?.addEventListener("abort", abortCollector, { once: true });
+  if (signal?.aborted) abortCollector();
 
   let exitCode: number | null;
   try {

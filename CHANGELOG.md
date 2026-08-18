@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，并使用语义化版本号。
 
+## [0.2.17] - 2026-08-18
+
+### Worker 人工介入入口
+
+- 新增可回滚的 Windows RDP 配置器，自动备份 Worker 配置、终端服务和防火墙状态，并将远程处理入口回传 Master。
+- RDP 防火墙规则强制限制到本地子网，避免为人工验证码处理扩大公网暴露面。
+- Worker 在 Windows 下终止采集进程树时校验 `taskkill` 结果、设置超时并回退到强制终止，避免暂停或租约丢失后采集进程继续请求。
+
 ## [0.2.16] - 2026-08-18
 
 ### Browser Slot 生产闭环
