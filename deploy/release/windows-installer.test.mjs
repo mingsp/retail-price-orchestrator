@@ -20,6 +20,7 @@ const windowsAclUrl = new URL("../windows/windows-acl.ps1", import.meta.url);
 const observabilityConfigurationUrl = new URL("../windows/configure-observability.ps1", import.meta.url);
 const browserSlotPreparationUrl = new URL("../windows/configure-worker-browser-slots.ps1", import.meta.url);
 const workerRdpConfigurationUrl = new URL("../windows/configure-worker-rdp.ps1", import.meta.url);
+const dingtalkConfigurationUrl = new URL("../windows/configure-dingtalk-webhook.ps1", import.meta.url);
 
 test("Windows installer registers the interactive CDP helper with the resolved Windows identity", async () => {
   const installer = await readFile(installerUrl, "utf8");
@@ -302,4 +303,19 @@ test("Worker RDP configuration is bounded, reversible, and reports a business-us
   assert.match(source, /catch\s*\{/);
   assert.match(source, /Restore-PreviousState/);
   assert.doesNotMatch(source, /(password|access_token|phone|mobile)\s*=\s*['"][^'"]+['"]/i);
+});
+
+test("DingTalk configuration updates the active and mirror environments without exposing the webhook", async () => {
+  const source = await readFile(dingtalkConfigurationUrl, "utf8");
+
+  assert.match(source, /Read-Host .* -AsSecureString/);
+  assert.match(source, /EnvironmentPath = 'D:\\SpanAI\\retail-radar-master\\config\\\.env\.production'/);
+  assert.match(source, /MirrorEnvironmentPath = 'D:\\SpanAI\\retail-radar-master\\config\\production-deploy\.env'/);
+  assert.match(source, /Set-EnvironmentValue -Path \$primaryEnvironment/);
+  assert.match(source, /Set-EnvironmentValue -Path \$mirrorEnvironment/);
+  assert.match(source, /--no-deps --force-recreate master/);
+  assert.doesNotMatch(source, /--build/);
+  assert.match(source, /system:dingtalk-notification-missing/);
+  assert.match(source, /webhookValuePrinted = \$false/);
+  assert.match(source, /Restore-Configuration/);
 });
