@@ -23,6 +23,8 @@ test("scheduled backup requires external policy, verifies the off-host copy, and
   assert.match(scheduled, /Test-ChildPath/);
   assert.match(scheduled, /MinimumCopies/);
   assert.match(scheduled, /RunRestoreDrill/);
+  assert.match(scheduled, /Docker\\Docker\\resources\\bin/);
+  assert.match(scheduled, /docker_cli_missing/);
 });
 
 test("backup schedule installs separate daily backup and weekly restore tasks", () => {

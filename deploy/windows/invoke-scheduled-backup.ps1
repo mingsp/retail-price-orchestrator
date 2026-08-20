@@ -6,6 +6,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$dockerCliDirectory = 'C:\Program Files\Docker\Docker\resources\bin'
+$dockerCli = Join-Path $dockerCliDirectory 'docker.exe'
+if (-not (Test-Path -LiteralPath $dockerCli -PathType Leaf)) { throw 'docker_cli_missing' }
+$env:PATH = "$dockerCliDirectory;$env:PATH"
 
 function Resolve-RequiredDirectory {
   param([string]$Path, [string]$Label)
