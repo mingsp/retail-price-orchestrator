@@ -17,6 +17,19 @@ function Get-LabelValue($Labels, [string]$Name) {
     return $null
 }
 
+function Grant-DockerDesktopModifyAccess([string]$Path) {
+    $owners = @(
+        Get-Process -Name 'com.docker.backend' -IncludeUserName -ErrorAction SilentlyContinue |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_.UserName) } |
+            Select-Object -ExpandProperty UserName -Unique
+    )
+    if ($owners.Count -ne 1) { throw 'Exactly one Docker Desktop user is required for the MinIO staging directory' }
+    $account = New-Object Security.Principal.NTAccount($owners[0])
+    $sid = $account.Translate([Security.Principal.SecurityIdentifier]).Value
+    & icacls.exe $Path /grant:r "*$sid`:(OI)(CI)M" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to grant Docker Desktop access to the MinIO staging directory' }
+}
+
 $containers = @(& docker.exe ps --filter "label=com.docker.compose.project=$ProjectName" --format '{{.Names}}')
 $postgresContainers = @(
     & docker.exe ps `
@@ -98,20 +111,30 @@ foreach ($table in $criticalTables) {
 
 $minioArchiveName = 'minio-data.tar'
 $minioArchivePath = Join-Path $backupRoot $minioArchiveName
+$minioStagingRoot = Join-Path $env:ProgramData ('RetailRadar\BackupStaging\' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $minioStagingRoot -Force | Out-Null
+Protect-RetailRadarPath -Path $minioStagingRoot -Container
+Grant-DockerDesktopModifyAccess -Path $minioStagingRoot
+$stagedMinioArchive = Join-Path $minioStagingRoot $minioArchiveName
 $minioPaused = $false
 try {
     & docker.exe pause $minioContainer | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Failed to pause MinIO for a consistent versioned-volume backup' }
     $minioPaused = $true
     & docker.exe run --rm --volumes-from $minioContainer `
-        --mount "type=bind,source=$backupRoot,target=/backup" `
+        --mount "type=bind,source=$minioStagingRoot,target=/backup" `
         alpine:3.21.3 sh -c "tar -C /data -cf /backup/$minioArchiveName ."
     if ($LASTEXITCODE -ne 0) { throw 'MinIO versioned-volume backup failed' }
+    if (-not (Test-Path -LiteralPath $stagedMinioArchive -PathType Leaf)) { throw 'MinIO staging archive was not created' }
+    Move-Item -LiteralPath $stagedMinioArchive -Destination $minioArchivePath
 }
 finally {
     if ($minioPaused) {
         & docker.exe unpause $minioContainer | Out-Null
         if ($LASTEXITCODE -ne 0) { Write-Warning 'MinIO backup completed but the container could not be unpaused automatically' }
+    }
+    if (Test-Path -LiteralPath $minioStagingRoot -PathType Container) {
+        Remove-Item -LiteralPath $minioStagingRoot -Recurse -Force
     }
 }
 if (-not (Test-Path -LiteralPath $minioArchivePath -PathType Leaf)) { throw 'MinIO archive was not created' }

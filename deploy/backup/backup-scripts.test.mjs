@@ -14,6 +14,10 @@ test("backup captures PostgreSQL and a consistent versioned MinIO volume", () =>
   assert.match(backup, /minio-data\.tar/);
   assert.match(backup, /criticalTableCounts/);
   assert.match(backup, /Get-FileHash/);
+  assert.match(backup, /BackupStaging/);
+  assert.match(backup, /Grant-DockerDesktopModifyAccess/);
+  assert.match(backup, /source=\$minioStagingRoot/);
+  assert.match(backup, /Move-Item -LiteralPath \$stagedMinioArchive -Destination \$minioArchivePath/);
 });
 
 test("scheduled backup requires external policy, verifies the off-host copy, and fences retention", () => {
