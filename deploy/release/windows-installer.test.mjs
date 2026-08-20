@@ -323,6 +323,9 @@ test("DingTalk configuration updates the active and mirror environments without 
   assert.match(source, /Set-EnvironmentValue -Path \$mirrorEnvironment/);
   assert.match(source, /--no-deps --force-recreate master/);
   assert.doesNotMatch(source, /--build/);
+  assert.match(source, /--max-time 10/);
+  assert.match(source, /\$webhookLoaded = \$false/);
+  assert.match(source, /if \(\$webhookLoaded\) \{ break \}/);
   assert.match(source, /system:dingtalk-notification-missing/);
   assert.match(source, /webhookValuePrinted = \$false/);
   assert.match(source, /Restore-Configuration/);

@@ -153,7 +153,7 @@ try {
   $ready = $false
   for ($attempt = 0; $attempt -lt 60; $attempt++) {
     Start-Sleep -Seconds 2
-    $body = & curl.exe --silent --show-error --fail --ssl-no-revoke --noproxy '*' --cacert $MasterCaCertificatePath --resolve $resolve $readyUrl
+    $body = & curl.exe --max-time 10 --silent --show-error --fail --ssl-no-revoke --noproxy '*' --cacert $MasterCaCertificatePath --resolve $resolve $readyUrl
     if ($LASTEXITCODE -eq 0) {
       try { $ready = ($body | ConvertFrom-Json).ok -eq $true } catch { $ready = $false }
     }
@@ -161,10 +161,19 @@ try {
   }
   if (-not $ready) { throw 'master_not_ready_after_webhook_configuration' }
 
-  $report = (& curl.exe --silent --show-error --fail --ssl-no-revoke --noproxy '*' --cacert $MasterCaCertificatePath --resolve $resolve $readinessUrl) | ConvertFrom-Json
-  if (@($report.report.issues | Where-Object { $_.id -eq 'system:dingtalk-notification-missing' }).Count -gt 0) {
-    throw 'dingtalk_webhook_not_loaded_by_master'
+  $webhookLoaded = $false
+  for ($attempt = 0; $attempt -lt 60; $attempt++) {
+    $reportBody = & curl.exe --max-time 10 --silent --show-error --fail --ssl-no-revoke --noproxy '*' --cacert $MasterCaCertificatePath --resolve $resolve $readinessUrl
+    if ($LASTEXITCODE -eq 0) {
+      try {
+        $report = $reportBody | ConvertFrom-Json
+        $webhookLoaded = @($report.report.issues | Where-Object { $_.id -eq 'system:dingtalk-notification-missing' }).Count -eq 0
+      } catch { $webhookLoaded = $false }
+    }
+    if ($webhookLoaded) { break }
+    Start-Sleep -Seconds 2
   }
+  if (-not $webhookLoaded) { throw 'dingtalk_webhook_not_loaded_by_master' }
 
   [pscustomobject]@{
     success = $true
