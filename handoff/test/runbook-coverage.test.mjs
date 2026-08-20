@@ -164,6 +164,42 @@ test("private account contact map is placeholder-only", async () => {
   assert.doesNotThrow(() => JSON.parse(contactMap));
 });
 
+test("201 and 66 handoff preserves deployment boundaries, partitioned archives, and Excel gates", async () => {
+  const master = await fs.readFile(
+    path.join(repoRoot, "docs", "handoff", "17-201总控生产交接.md"),
+    "utf8"
+  );
+  const worker = await fs.readFile(
+    path.join(repoRoot, "docs", "handoff", "18-66业务Worker生产交接.md"),
+    "utf8"
+  );
+  const archive = await fs.readFile(
+    path.join(repoRoot, "docs", "handoff", "19-数据目录归档与Excel交付.md"),
+    "utf8"
+  );
+
+  for (const concept of [
+    "201 是长期在线的 Retail-Radar Master 总控",
+    "66 不承担 201 总控职责",
+    "部署、升级和 Codex 交接不得手工复制",
+    "<storeId>",
+    "<runId>",
+    "<taskId>",
+    "<captureId>",
+    "类目就跨类目去重",
+    "completed_valid",
+    "business-exports",
+    "商品清单",
+    "SKU规格明细",
+    "类目汇总",
+    "说明"
+  ]) {
+    assert.match(`${master}\n${worker}\n${archive}`, new RegExp(concept));
+  }
+  assert.doesNotMatch(`${master}\n${worker}\n${archive}`, /access_token=[A-Za-z0-9_-]{16,}/i);
+  assert.doesNotMatch(`${master}\n${worker}\n${archive}`, /(?:^|[^*])1[3-9]\d{9}(?:$|[^\d])/m);
+});
+
 test("66 standalone handoff includes final facts, decision index, and sanitized prompt history", {
   skip: privateOperationsAvailable ? false : "private operations documents are intentionally absent"
 }, async () => {

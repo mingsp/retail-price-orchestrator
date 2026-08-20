@@ -30,9 +30,11 @@
 10. `docs/handoff/14-账号风控Profile与登录操作手册.md`
 11. `docs/handoff/15-新人演练与独立操作验收.md`
 12. `docs/handoff/16-Codex提示词手册与模板.md`
-13. `docs/handoff/08-原始数据质量与完整性验收.md`
-14. 其余 `docs/handoff/` 文档
-15. 准备真实门店任务时，再填写并阅读 `START_WITH_THIS_PROMPT.md`
+13. 按节点读取 `docs/handoff/17-201总控生产交接.md` 或 `docs/handoff/18-66业务Worker生产交接.md`
+14. `docs/handoff/19-数据目录归档与Excel交付.md`
+15. `docs/handoff/08-原始数据质量与完整性验收.md`
+16. 其余 `docs/handoff/` 文档
+17. 准备真实门店任务时，再填写并阅读 `START_WITH_THIS_PROMPT.md`
 
 ### 私有独立单店节点
 
@@ -98,12 +100,14 @@ Canary 通过后才能扩大到同门店其他类目或多个 Worker。
 
 ## 当前事实边界
 
-- 201 与 66 当前正式运行 `v0.2.5` / `bc61bacf316ca6139973984fd6ed803537f3bb09` / `2026-08-17-p0.1`，但每次接管仍须从版本接口和容器重新验证。
-- 201 是长期 Master，66 是小柴购（甘家寨店）独立单店节点；具体账号、Profile、CDP 和在线状态以 Master、Worker、页面和当前生产台账为准。
+- 201 与 66 已部署 `v0.2.18` / `746b67246adb8d60c1bfe8f4fe523dc5bd4be372` / `2026-08-17-p0.1`；每次接管仍须从版本接口和容器重新验证。
+- 201 是长期 Master 总控；66 是已交付业务使用的 Worker/独立执行节点。具体账号、Profile、CDP 和在线状态以实时 Master、Worker、页面和当前生产台账为准。
 - 当前生产采集器是 `project/scripts/native-cdp-store-capture.mjs`。
 - SSH 只用于安装、升级和故障维护，不承担日常调度。
 - Worker 执行确定性脚本；Codex 在 Master 侧负责巡检、异常理解和白名单操作。
 - 原始数据先保存，后续再结构化、导出和入库。
+- 部署与交接不手工迁移历史 JSONL；新数据只走正式 artifact 链路。
+- 数据按门店、批次、类目任务和采集尝试分区；完整批次冻结后才生成 Excel。
 - 发布包中的脱敏样例只用于演练，不能作为生产数据。
 - 钉钉“商圈比价生产台账”是登记事实源；201 的定时任务只做 dry-run 校验。Codex 必须实时读取
   DWS，显式对账并获得授权后才能 publish，不能把旧文档当成表格当前内容。
