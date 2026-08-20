@@ -4,6 +4,7 @@ param(
   [string]$EnvironmentPath = 'D:\SpanAI\retail-radar-master\config\.env.production',
   [string]$MirrorEnvironmentPath = 'D:\SpanAI\retail-radar-master\config\production-deploy.env',
   [string]$MasterCaCertificatePath = 'D:\SpanAI\retail-radar-master\certificates\master-root.crt',
+  [string]$WebhookFilePath = '',
   [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProjectName = 'retail-radar'
 )
 
@@ -20,6 +21,7 @@ $backupRoot = Join-Path (Split-Path -Parent $primaryEnvironment) "webhook-backup
 $changed = $false
 $secureWebhook = $null
 $bstr = [IntPtr]::Zero
+$webhookInputPath = ''
 
 function Read-Environment([string]$Path) {
   $values = [ordered]@{}
@@ -86,6 +88,16 @@ foreach ($required in @($workspace, $primaryEnvironment, $composePath, $MasterCa
 if ($mirrorEnvironment -and -not (Test-Path -LiteralPath $mirrorEnvironment -PathType Leaf)) {
   throw "mirror_environment_missing:$mirrorEnvironment"
 }
+if ($WebhookFilePath) {
+  $credentialRoot = [IO.Path]::GetFullPath((Join-Path $env:ProgramData 'RetailRadar\credentials'))
+  $webhookInputPath = [IO.Path]::GetFullPath($WebhookFilePath)
+  $credentialPrefix = $credentialRoot.TrimEnd('\') + '\'
+  if (-not $webhookInputPath.StartsWith($credentialPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'webhook_file_outside_protected_credential_root'
+  }
+  if (-not (Test-Path -LiteralPath $webhookInputPath -PathType Leaf)) { throw 'webhook_file_missing' }
+  if ((Get-Item -LiteralPath $webhookInputPath).Length -gt 4096) { throw 'webhook_file_too_large' }
+}
 
 New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
 Protect-RetailRadarPath -Path $backupRoot -Container
@@ -97,9 +109,19 @@ if ($mirrorEnvironment) {
 }
 
 try {
-  $secureWebhook = Read-Host 'Paste DingTalk robot Webhook (hidden input)' -AsSecureString
-  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureWebhook)
-  $webhook = Normalize-WebhookInput ([Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr))
+  if ($webhookInputPath) {
+    try {
+      $webhook = Normalize-WebhookInput ([IO.File]::ReadAllText($webhookInputPath))
+    } finally {
+      if (Test-Path -LiteralPath $webhookInputPath -PathType Leaf) {
+        Remove-Item -LiteralPath $webhookInputPath -Force
+      }
+    }
+  } else {
+    $secureWebhook = Read-Host 'Paste DingTalk robot Webhook (hidden input)' -AsSecureString
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureWebhook)
+    $webhook = Normalize-WebhookInput ([Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr))
+  }
   $uri = $null
   if (-not [Uri]::TryCreate($webhook, [UriKind]::Absolute, [ref]$uri)) {
     $startsWithHttps = $webhook.StartsWith('https://', [StringComparison]::OrdinalIgnoreCase)
@@ -163,6 +185,9 @@ try {
   }
   throw
 } finally {
+  if ($webhookInputPath -and (Test-Path -LiteralPath $webhookInputPath -PathType Leaf)) {
+    Remove-Item -LiteralPath $webhookInputPath -Force
+  }
   if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
   $webhook = $null
   $secureWebhook = $null
