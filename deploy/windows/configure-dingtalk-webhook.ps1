@@ -22,6 +22,7 @@ $changed = $false
 $secureWebhook = $null
 $bstr = [IntPtr]::Zero
 $webhookInputPath = ''
+$readinessOutputPath = ''
 
 function Read-Environment([string]$Path) {
   $values = [ordered]@{}
@@ -162,16 +163,24 @@ try {
   if (-not $ready) { throw 'master_not_ready_after_webhook_configuration' }
 
   $webhookLoaded = $false
-  for ($attempt = 0; $attempt -lt 60; $attempt++) {
-    $reportBody = & curl.exe --max-time 10 --silent --show-error --fail --ssl-no-revoke --noproxy '*' --cacert $MasterCaCertificatePath --resolve $resolve $readinessUrl
-    if ($LASTEXITCODE -eq 0) {
-      try {
-        $report = $reportBody | ConvertFrom-Json
-        $webhookLoaded = @($report.report.issues | Where-Object { $_.id -eq 'system:dingtalk-notification-missing' }).Count -eq 0
-      } catch { $webhookLoaded = $false }
+  $readinessOutputPath = Join-Path $env:TEMP ("retail-radar-readiness-" + [guid]::NewGuid().ToString('N') + '.json')
+  try {
+    for ($attempt = 0; $attempt -lt 60; $attempt++) {
+      & curl.exe --max-time 10 --silent --show-error --fail --ssl-no-revoke --noproxy '*' --cacert $MasterCaCertificatePath --resolve $resolve --output $readinessOutputPath $readinessUrl
+      if ($LASTEXITCODE -eq 0) {
+        try {
+          $reportBody = [IO.File]::ReadAllText($readinessOutputPath, [Text.Encoding]::UTF8)
+          $report = $reportBody | ConvertFrom-Json
+          $webhookLoaded = @($report.report.issues | Where-Object { $_.id -eq 'system:dingtalk-notification-missing' }).Count -eq 0
+        } catch { $webhookLoaded = $false }
+      }
+      if ($webhookLoaded) { break }
+      Start-Sleep -Seconds 2
     }
-    if ($webhookLoaded) { break }
-    Start-Sleep -Seconds 2
+  } finally {
+    if (Test-Path -LiteralPath $readinessOutputPath -PathType Leaf) {
+      Remove-Item -LiteralPath $readinessOutputPath -Force
+    }
   }
   if (-not $webhookLoaded) { throw 'dingtalk_webhook_not_loaded_by_master' }
 
@@ -194,6 +203,9 @@ try {
   }
   throw
 } finally {
+  if ($readinessOutputPath -and (Test-Path -LiteralPath $readinessOutputPath -PathType Leaf)) {
+    Remove-Item -LiteralPath $readinessOutputPath -Force
+  }
   if ($webhookInputPath -and (Test-Path -LiteralPath $webhookInputPath -PathType Leaf)) {
     Remove-Item -LiteralPath $webhookInputPath -Force
   }

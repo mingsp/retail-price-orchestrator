@@ -326,6 +326,9 @@ test("DingTalk configuration updates the active and mirror environments without 
   assert.match(source, /--max-time 10/);
   assert.match(source, /\$webhookLoaded = \$false/);
   assert.match(source, /if \(\$webhookLoaded\) \{ break \}/);
+  assert.match(source, /--output \$readinessOutputPath/);
+  assert.match(source, /ReadAllText\(\$readinessOutputPath, \[Text\.Encoding\]::UTF8\)/);
+  assert.match(source, /Remove-Item -LiteralPath \$readinessOutputPath -Force/);
   assert.match(source, /system:dingtalk-notification-missing/);
   assert.match(source, /webhookValuePrinted = \$false/);
   assert.match(source, /Restore-Configuration/);
