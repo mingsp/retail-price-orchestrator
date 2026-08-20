@@ -61,7 +61,7 @@
 
 ### 开发部署门禁
 
-201 的 `DINGTALK_WEBHOOK_URL` 仍是占位符。管理员必须运行固定工程中的 `configure-dingtalk-webhook.ps1`，在隐藏输入中录入正式 Webhook，并确认脚本输出 `success=true`。
+201 已通过受限凭据文件配置正式 `DINGTALK_WEBHOOK_URL`，主配置和镜像配置均已更新，脚本返回 `success=true`。2026-08-20 完成受控 firing/resolved 演练：2 条通知均进入 `sent`，人工复核队列为 0；文档和日志不记录 Webhook 原文。
 
 ### 业务开跑门禁
 
