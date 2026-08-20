@@ -19,22 +19,23 @@
 ## 固定阅读顺序
 
 1. `AGENTS.md`
-2. `docs/operations/2026-08-17-github-66-201-release-handoff.md`
-3. `docs/operations/2026-08-17-production-closure-report.md`
-4. `docs/handoff/00-项目目标与边界.md`
-5. `docs/handoff/01-系统架构与数据流.md`
-6. `docs/handoff/02-Codex固定阅读与操作顺序.md`
-7. `docs/handoff/04-设备账号Profile-CDP门店绑定.md`
-8. `docs/handoff/05-任务规划与低频采集SOP.md`
-9. `docs/handoff/07-风险事件与人工处理.md`
-10. `docs/handoff/14-账号风控Profile与登录操作手册.md`
-11. `docs/handoff/15-新人演练与独立操作验收.md`
-12. `docs/handoff/16-Codex提示词手册与模板.md`
-13. 按节点读取 `docs/handoff/17-201总控生产交接.md` 或 `docs/handoff/18-66业务Worker生产交接.md`
-14. `docs/handoff/19-数据目录归档与Excel交付.md`
-15. `docs/handoff/08-原始数据质量与完整性验收.md`
-16. 其余 `docs/handoff/` 文档
-17. 准备真实门店任务时，再填写并阅读 `START_WITH_THIS_PROMPT.md`
+2. `docs/operations/2026-08-20-201-66-production-handoff.md`
+3. `docs/operations/2026-08-17-github-66-201-release-handoff.md`
+4. `docs/operations/2026-08-17-production-closure-report.md`
+5. `docs/handoff/00-项目目标与边界.md`
+6. `docs/handoff/01-系统架构与数据流.md`
+7. `docs/handoff/02-Codex固定阅读与操作顺序.md`
+8. `docs/handoff/04-设备账号Profile-CDP门店绑定.md`
+9. `docs/handoff/05-任务规划与低频采集SOP.md`
+10. `docs/handoff/07-风险事件与人工处理.md`
+11. `docs/handoff/14-账号风控Profile与登录操作手册.md`
+12. `docs/handoff/15-新人演练与独立操作验收.md`
+13. `docs/handoff/16-Codex提示词手册与模板.md`
+14. 按节点读取 `docs/handoff/17-201总控生产交接.md` 或 `docs/handoff/18-66业务Worker生产交接.md`
+15. `docs/handoff/19-数据目录归档与Excel交付.md`
+16. `docs/handoff/08-原始数据质量与完整性验收.md`
+17. 其余 `docs/handoff/` 文档
+18. 准备真实门店任务时，再填写并阅读 `START_WITH_THIS_PROMPT.md`
 
 ### 私有独立单店节点
 
