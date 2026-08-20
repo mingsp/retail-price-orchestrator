@@ -31,6 +31,23 @@ function Read-Environment([string]$Path) {
   return $values
 }
 
+function Normalize-WebhookInput([string]$Value) {
+  $normalized = $Value.Trim().Replace([string][char]0x200B, '').Replace([string][char]0xFEFF, '')
+  if ($normalized -match '(?i)^DINGTALK_WEBHOOK_URL\s*=\s*(.+)$') { $normalized = $Matches[1].Trim() }
+  if ($normalized -match '^\[[^\]]*\]\((https://[^)]+)\)$') { $normalized = $Matches[1].Trim() }
+  if ($normalized.StartsWith('<') -and $normalized.EndsWith('>')) {
+    $normalized = $normalized.Substring(1, $normalized.Length - 2).Trim()
+  }
+  if (
+    $normalized.Length -ge 2 -and
+    (($normalized.StartsWith('"') -and $normalized.EndsWith('"')) -or
+      ($normalized.StartsWith("'") -and $normalized.EndsWith("'")))
+  ) {
+    $normalized = $normalized.Substring(1, $normalized.Length - 2).Trim()
+  }
+  return $normalized
+}
+
 function Set-EnvironmentValue([string]$Path, [string]$Name, [string]$Value) {
   $lines = [Collections.Generic.List[string]]::new()
   foreach ($line in [IO.File]::ReadAllLines($Path)) { [void]$lines.Add($line) }
@@ -80,11 +97,14 @@ if ($mirrorEnvironment) {
 }
 
 try {
-  $secureWebhook = Read-Host '请输入钉钉自定义机器人 Webhook（输入内容不会显示）' -AsSecureString
+  $secureWebhook = Read-Host 'Paste DingTalk robot Webhook (hidden input)' -AsSecureString
   $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureWebhook)
-  $webhook = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr).Trim()
+  $webhook = Normalize-WebhookInput ([Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr))
   $uri = $null
-  if (-not [Uri]::TryCreate($webhook, [UriKind]::Absolute, [ref]$uri)) { throw 'dingtalk_webhook_invalid_url' }
+  if (-not [Uri]::TryCreate($webhook, [UriKind]::Absolute, [ref]$uri)) {
+    $startsWithHttps = $webhook.StartsWith('https://', [StringComparison]::OrdinalIgnoreCase)
+    throw "dingtalk_webhook_invalid_url:length=$($webhook.Length);https=$startsWithHttps"
+  }
   if ($uri.Scheme -ne 'https' -or $uri.Host -ne 'oapi.dingtalk.com' -or $uri.AbsolutePath -ne '/robot/send') {
     throw 'dingtalk_webhook_must_be_official_https_robot_url'
   }

@@ -309,6 +309,9 @@ test("DingTalk configuration updates the active and mirror environments without 
   const source = await readFile(dingtalkConfigurationUrl, "utf8");
 
   assert.match(source, /Read-Host .* -AsSecureString/);
+  assert.match(source, /Normalize-WebhookInput/);
+  assert.match(source, /DINGTALK_WEBHOOK_URL\\s\*=\\s\*/);
+  assert.match(source, /hidden input/);
   assert.match(source, /EnvironmentPath = 'D:\\SpanAI\\retail-radar-master\\config\\\.env\.production'/);
   assert.match(source, /MirrorEnvironmentPath = 'D:\\SpanAI\\retail-radar-master\\config\\production-deploy\.env'/);
   assert.match(source, /Set-EnvironmentValue -Path \$primaryEnvironment/);
