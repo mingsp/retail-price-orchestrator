@@ -2,6 +2,7 @@
 param(
   [Parameter(Mandatory = $true)][string]$InstallRoot,
   [Parameter(Mandatory = $true)][string]$PolicyPath,
+  [string]$RunnerPath = '',
   [string]$DailyTaskName = 'RetailRadar-Master-DailyBackup',
   [string]$WeeklyTaskName = 'RetailRadar-Master-WeeklyRestoreDrill',
   [string]$DailyAt = '03:00',
@@ -11,7 +12,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$runner = Join-Path $InstallRoot 'app\deploy\windows\invoke-scheduled-backup.ps1'
+$runner = if ($RunnerPath) { $RunnerPath } else { Join-Path $InstallRoot 'app\deploy\windows\invoke-scheduled-backup.ps1' }
 if (-not (Test-Path -LiteralPath $runner -PathType Leaf)) { throw 'Scheduled backup runner was not found' }
 $resolvedPolicy = (Resolve-Path -LiteralPath $PolicyPath).Path
 $resolvedRunner = (Resolve-Path -LiteralPath $runner).Path

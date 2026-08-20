@@ -32,6 +32,7 @@ test("backup schedule installs separate daily backup and weekly restore tasks", 
   assert.match(installer, /RetailRadar-Master-WeeklyRestoreDrill/);
   assert.match(installer, /-RunRestoreDrill/);
   assert.match(installer, /-MultipleInstances IgnoreNew/);
+  assert.match(installer, /RunnerPath/);
 });
 
 test("peer health fallback reads protected configuration and sends only state transitions", () => {
