@@ -1,5 +1,6 @@
 {
   "installRoot": "D:\\SpanAI\\retail-radar-master",
+  "scriptRoot": "D:\\SpanAI\\retail-price-orchestrator",
   "projectName": "retail-radar",
   "masterUrl": "https://127.0.0.1:2808",
   "localBackupRoot": "D:\\SpanAI\\retail-radar-master\\backups",

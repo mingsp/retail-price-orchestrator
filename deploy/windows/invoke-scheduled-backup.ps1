@@ -65,13 +65,14 @@ function Remove-ExpiredBackups {
 $resolvedPolicy = (Resolve-Path -LiteralPath $PolicyPath).Path
 $policy = Get-Content -LiteralPath $resolvedPolicy -Raw -Encoding UTF8 | ConvertFrom-Json
 $installRoot = [string]$policy.installRoot
+$scriptRoot = if ($policy.scriptRoot) { [IO.Path]::GetFullPath([string]$policy.scriptRoot) } else { Join-Path $installRoot 'app' }
 $localRoot = Resolve-RequiredDirectory -Path ([string]$policy.localBackupRoot) -Label 'localBackupRoot'
 $retentionDays = if ($policy.retentionDays) { [int]$policy.retentionDays } else { 14 }
 $minimumCopies = if ($policy.minimumCopies) { [int]$policy.minimumCopies } else { 2 }
 if ($retentionDays -lt 1 -or $minimumCopies -lt 2) { throw 'Retention requires at least 1 day and 2 copies' }
 
-$backupScript = Join-Path $installRoot 'app\deploy\windows\backup-master.ps1'
-$restoreScript = Join-Path $installRoot 'app\deploy\windows\restore-drill.ps1'
+$backupScript = Join-Path $scriptRoot 'deploy\windows\backup-master.ps1'
+$restoreScript = Join-Path $scriptRoot 'deploy\windows\restore-drill.ps1'
 if (-not (Test-Path -LiteralPath $backupScript -PathType Leaf)) { throw 'backup-master.ps1 was not found' }
 if (-not (Test-Path -LiteralPath $restoreScript -PathType Leaf)) { throw 'restore-drill.ps1 was not found' }
 
